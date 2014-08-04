@@ -187,7 +187,7 @@ func (us *Users) SetFree(uids ...int) {
 func (us *Users) IsBusyUser(uid int) bool {
 	us.bmu.RLock()
 	defer us.bmu.RUnlock()
-	return us.busyUsers[uid] == 0
+	return us.busyUsers[uid] != 0
 }
 
 // interface for updating user information
