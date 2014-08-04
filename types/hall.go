@@ -114,6 +114,9 @@ func (th *TournamentHall) getTitle() string {
 
 // for hprose
 func (th *TournamentHall) Wrap() map[string]interface{} {
+	if th == nil {
+		return nil
+	}
 	stat := th.GetStat()
 	th.mu.RLock()
 	defer th.mu.RUnlock()
