@@ -20,7 +20,7 @@ func NewObs() *obs {
 
 func (this *obs) Wrap() []*User {
 	this.mu.RLock()
-	defer this.mu.Unlock()
+	defer this.mu.RUnlock()
 	us := make([]*User, 0)
 	for _, u := range this.users {
 		us = append(us, u)
