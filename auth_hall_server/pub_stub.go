@@ -435,6 +435,9 @@ func (pubStub) Create(title string, bet int, ctx interface{}) (int, error) {
 		}
 		id := normalHall.NextTableId()
 		ip := clients.BestServer()
+		if ip == "" {
+			return -1, fmt.Errorf("当前没有游戏服务器工作")
+		}
 		host := ip + ":" + gameServerSocketPort
 		if err := clients.GetStub(ip).Create(id); err != nil {
 			return -1, err
