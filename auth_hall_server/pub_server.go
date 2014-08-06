@@ -3,15 +3,17 @@ package main
 import (
 	"net/http"
 	"reflect"
-	"time"
 
 	"github.com/gogames/go_tetris/utils"
 	"github.com/hprose/hprose-go/hprose"
 )
 
-var httpPubServer = hprose.NewHttpService()
-
-var pubServerEnable = true
+var (
+	httpPubServer         = hprose.NewHttpService()
+	errCreateSessionFirst = "请先创建session"
+	errClosingServer      = "we are closing the server, not accept request at the moment"
+	pubServerEnable       = true
+)
 
 type (
 	pubStub struct{}
@@ -19,18 +21,17 @@ type (
 )
 
 func (pubSe) OnBeforeInvoke(fName string, params []reflect.Value, isSimple bool, ctx interface{}) {
-	log.Info("%v", time.Now())
 	log.Info(utils.HproseLog(fName, params, ctx))
 	if !pubServerEnable {
-		panic("we are closing the server, not accept request at the moment")
+		panic(errClosingServer)
 	}
 
-	session.CreateSession(ctx)
+	if !notNeedSessFunc[fName] && !session.IsSessIdExist(params[len(params)-1].String()) {
+		panic(errCreateSessionFirst)
+	}
 }
 
-func (pubSe) OnAfterInvoke(string, []reflect.Value, bool, []reflect.Value, interface{}) {
-	log.Info("%v", time.Now())
-}
+func (pubSe) OnAfterInvoke(string, []reflect.Value, bool, []reflect.Value, interface{}) {}
 
 func (pubSe) OnSendError(error, interface{}) {}
 

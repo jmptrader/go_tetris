@@ -92,6 +92,8 @@ func NewTournamentHall(numCandidate, awardGold, awardSilver int, host string) *T
 	}
 }
 
+func (th *TournamentHall) GetHost() string { return th.host }
+
 func (th *TournamentHall) GetStat() (stat string) {
 	th.mu.RLock()
 	defer th.mu.RUnlock()
@@ -108,9 +110,7 @@ func (th *TournamentHall) GetStat() (stat string) {
 	return stat
 }
 
-func (th *TournamentHall) getTitle() string {
-	return fmt.Sprintf("Round %d", th.round+1)
-}
+func (th *TournamentHall) getTitle() string { return fmt.Sprintf("Round %d", th.round+1) }
 
 // for hprose
 func (th *TournamentHall) Wrap() map[string]interface{} {

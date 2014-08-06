@@ -156,7 +156,7 @@ const (
 	statInGame  = "已开始"
 )
 
-// basic table info
+// basic table info, seems useless
 type tableInfo struct {
 	TId    int    `json:"table_id"`
 	TTitle string `json:"table_title"`

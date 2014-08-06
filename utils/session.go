@@ -71,21 +71,12 @@ func (ss *sessionStore) NumOfOnlineUsers() int {
 }
 
 // generate unique session id
-func (ss *sessionStore) generateSessionId(ctx interface{}) string {
+func (ss *sessionStore) generateSessionId() string {
 	return getRand()
 }
 
-// get session id from context
-func (ss *sessionStore) getSessionId(ctx interface{}) string {
-	sess, err := GetCookie(cookieSessId, ctx)
-	if err != nil {
-		return ""
-	}
-	return sess
-}
-
 // check if session id is already exist
-func (ss *sessionStore) isSessIdExist(sessId string) bool {
+func (ss *sessionStore) IsSessIdExist(sessId string) bool {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	return ss.sess[sessId] != nil
@@ -100,30 +91,16 @@ func (ss *sessionStore) delSession(sessionIds ...string) {
 	}
 }
 
-// create a session or refresh it
-func (ss *sessionStore) CreateSession(ctx interface{}) {
-	sessId := ss.getSessionId(ctx)
-	existId := ss.isSessIdExist(sessId)
-	if !existId {
-		sessId = ss.generateSessionId(ctx)
-	}
-	if err := AddCookie(cookieSessId, sessId, ctx); err != nil {
-		fmt.Println("add cookie error: ", err)
-		return
-	}
-	if err := SetCookie(cookieSessId, sessId, ctx); err != nil {
-		fmt.Println("set cookie error: ", err)
-		return
-	}
-	if existId {
-		ss.mu.RLock()
-		defer ss.mu.RUnlock()
-		ss.sess[sessId].updated = time.Now().Unix()
-		return
+// create a session and return session id
+func (ss *sessionStore) CreateSession() string {
+	var sessId = ""
+	for sessId == "" || ss.IsSessIdExist(sessId) {
+		sessId = ss.generateSessionId()
 	}
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
 	ss.sess[sessId] = newSession()
+	return sessId
 }
 
 // get all session to store in db
@@ -141,35 +118,42 @@ func (ss *sessionStore) GetAllSession() map[string]map[string]interface{} {
 }
 
 // store data in session
-func (ss *sessionStore) SetSession(key string, val interface{}, ctx interface{}) {
-	sessId := ss.getSessionId(ctx)
+// update updated
+func (ss *sessionStore) SetSession(key string, val interface{}, sessId string) {
+	if !ss.IsSessIdExist(sessId) {
+		return
+	}
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
-	ss.sess[sessId].set(key, val)
+	sess := ss.sess[sessId]
+	sess.set(key, val)
 }
 
 // delete data from session
-func (ss *sessionStore) DeleteKey(key string, ctx interface{}) {
-	sessId := ss.getSessionId(ctx)
+// update updated
+func (ss *sessionStore) DeleteKey(key string, sessId string) {
+	if !ss.IsSessIdExist(sessId) {
+		return
+	}
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
-	ss.sess[sessId].del(key)
+	sess := ss.sess[sessId]
+	sess.del(key)
 }
 
 // del the session id
-func (ss *sessionStore) DelSession(ctx interface{}) {
-	ss.delSession(ss.getSessionId(ctx))
+func (ss *sessionStore) DelSession(sessId string) {
+	ss.delSession(sessId)
 }
 
 // get data from session
-func (ss *sessionStore) GetSession(key string, ctx interface{}) interface{} {
+func (ss *sessionStore) GetSession(key string, sessId string) interface{} {
+	if !ss.IsSessIdExist(sessId) {
+		return nil
+	}
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
-	sessId := ss.getSessionId(ctx)
-	if sess, ok := ss.sess[sessId]; ok {
-		return sess.get(key)
-	}
-	return nil
+	return ss.sess[sessId].get(key)
 }
 
 // String for testing
@@ -217,4 +201,5 @@ func (s *session) del(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.vals, key)
+	s.updated = time.Now().Unix()
 }

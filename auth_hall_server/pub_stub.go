@@ -59,13 +59,19 @@ var (
 	errCantApplyForNilTournament = fmt.Errorf("暂无争霸赛, 无法加入.")
 	errNilTournamentHall         = fmt.Errorf("暂无争霸赛, 无法获得争霸赛桌子信息")
 	errCantMatchOpponent         = fmt.Errorf("无匹配对手, 请稍后重试.")
+	errNoWorkingGameServer       = fmt.Errorf("当前没有游戏服务器工作")
 )
 
+// create session and return session id
+func (pubStub) CreateSession() string {
+	return session.CreateSession()
+}
+
 // send mail, register auth
-func (pubStub) SendMailRegister(to string, ctx interface{}) error {
+func (pubStub) SendMailRegister(to string, sessId string) {
 	authenCode := utils.RandString(8)
-	session.SetSession(sessKeyRegister, authenCode, ctx)
-	session.SetSession(sessKeyEmail, to, ctx)
+	session.SetSession(sessKeyRegister, authenCode, sessId)
+	session.SetSession(sessKeyEmail, to, sessId)
 	text := "请输入验证码: " + authenCode
 	subject := "注册验证"
 	pushFunc(func() {
@@ -74,17 +80,16 @@ func (pubStub) SendMailRegister(to string, ctx interface{}) error {
 			log.Warn("text is %v", text)
 		}
 	})
-	return nil
 }
 
 // send mail, forget password
-func (pubStub) SendMailForget(to string, ctx interface{}) error {
+func (pubStub) SendMailForget(to string, sessId string) {
 	if u := getUserByEmail(to); u == nil {
-		return fmt.Errorf(errUserNotExist, to)
+		panic(fmt.Errorf(errUserNotExist, to))
 	}
 	authenCode := utils.RandString(8)
-	session.SetSession(sessKeyForgetPass, authenCode, ctx)
-	session.SetSession(sessKeyEmail, to, ctx)
+	session.SetSession(sessKeyForgetPass, authenCode, sessId)
+	session.SetSession(sessKeyEmail, to, sessId)
 	text := "请输入验证码: " + authenCode
 	subject := "找回密码"
 	pushFunc(func() {
@@ -93,285 +98,282 @@ func (pubStub) SendMailForget(to string, ctx interface{}) error {
 			log.Warn("text is %v", text)
 		}
 	})
-	return nil
 }
 
 // forget password, modify it
-func (pubStub) ForgetPassword(newPassword, authenCode string, ctx interface{}) error {
+func (pubStub) ForgetPassword(newPassword, authenCode string, sessId string) {
 	// check authen code
-	if code, ok := session.GetSession(sessKeyForgetPass, ctx).(string); !ok {
-		return errForgetPassGetCodeFirst
+	if code, ok := session.GetSession(sessKeyForgetPass, sessId).(string); !ok {
+		panic(errForgetPassGetCodeFirst)
 	} else if code != authenCode {
-		return errForgetPassIncorrectCode
+		panic(errForgetPassIncorrectCode)
 	}
 
 	if !passReg.MatchString(newPassword) {
-		return errIncorrectPasswordFormat
+		panic(errIncorrectPasswordFormat)
 	}
 	// get user by email & update it
-	email, ok := session.GetSession(sessKeyEmail, ctx).(string)
+	email, ok := session.GetSession(sessKeyEmail, sessId).(string)
 	if !ok {
-		return errForgetPassGetCodeFirst
+		panic(errForgetPassGetCodeFirst)
 	}
 	u := getUserByEmail(email)
 	if u == nil {
-		return fmt.Errorf(errUserNotExist, email)
+		panic(fmt.Errorf(errUserNotExist, email))
 	}
 	if err := u.Update(types.NewUpdateString(types.UF_Password, utils.Encrypt(newPassword))); err != nil {
-		return err
+		panic(err)
 	}
 	// delete session
-	session.DeleteKey(sessKeyForgetPass, ctx)
-	session.DeleteKey(sessKeyEmail, ctx)
+	session.DeleteKey(sessKeyForgetPass, sessId)
+	session.DeleteKey(sessKeyEmail, sessId)
 	pushFunc(func() { insertOrUpdateUser(u) })
-	return nil
 }
 
 // register
-func (pubStub) Register(email, password, nickname, authenCode string, ctx interface{}) error {
+func (pubStub) Register(email, password, nickname, authenCode string, sessId string) {
 	// check authen code
-	if code, ok := session.GetSession(sessKeyRegister, ctx).(string); !ok {
-		return errRegisterGetCodeFirst
+	if code, ok := session.GetSession(sessKeyRegister, sessId).(string); !ok {
+		panic(errRegisterGetCodeFirst)
 	} else if code != authenCode {
-		return errRegisterIncorrectCode
+		panic(errRegisterIncorrectCode)
 	}
 	// check email
-	if tmpEmail, ok := session.GetSession(sessKeyEmail, ctx).(string); !ok {
-		return errRegisterGetCodeFirst
+	if tmpEmail, ok := session.GetSession(sessKeyEmail, sessId).(string); !ok {
+		panic(errRegisterGetCodeFirst)
 	} else if email != tmpEmail {
-		return fmt.Errorf(errUnmatchedEmail, tmpEmail)
+		panic(fmt.Errorf(errUnmatchedEmail, tmpEmail))
 	}
 
 	// check input
 	if !emailReg.MatchString(email) {
-		return errIncorrectEmailFormat
+		panic(errIncorrectEmailFormat)
 	}
 	if !nickReg.MatchString(nickname) {
-		return errIncorrectNicknameFormat
+		panic(errIncorrectNicknameFormat)
 	}
 	if !passReg.MatchString(password) {
-		return errIncorrectPasswordFormat
+		panic(errIncorrectPasswordFormat)
 	}
 	if getUserByEmail(email) != nil {
-		return errEmailExist
+		panic(errEmailExist)
 	}
 	if getUserByNickname(nickname) != nil {
-		return errNicknameExist
+		panic(errNicknameExist)
 	}
 	// generate new bitcoin address for the user
 	addr, err := getNewAddress(nickname)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	// encrypt password
 	password = utils.Encrypt(password)
 	if password == "" {
-		return errEncryptPassword
+		panic(errEncryptPassword)
 	}
 	// delete the authen code
-	session.DeleteKey(sessKeyRegister, ctx)
-	session.DeleteKey(sessKeyEmail, ctx)
+	session.DeleteKey(sessKeyRegister, sessId)
+	session.DeleteKey(sessKeyEmail, sessId)
 	// add user in cache
 	u := types.NewUser(users.GetNextId(), email, password, nickname, addr)
 	u.Update(types.NewUpdateInt(types.UF_Energy, defaultEnergy)) // new user get 10 energy
 	users.Add(u)
 	// async insert into database
 	pushFunc(func() { insertOrUpdateUser(u) })
-	return nil
+	return
 }
 
 // login
-func (pubStub) Login(nickname, password string, ctx interface{}) (err error) {
+func (pubStub) Login(nickname, password string, sessId string) {
 	u := getUserByNickname(nickname)
 	if u == nil {
-		return fmt.Errorf(errUserNotExist, nickname)
+		panic(fmt.Errorf(errUserNotExist, nickname))
 	}
-	if u.Password == utils.Encrypt(password) {
-		session.SetSession(sessKeyUserId, u.Uid, ctx)
-		return nil
+	if u.Password != utils.Encrypt(password) {
+		panic(errIncorrectPwd)
 	}
-	return errIncorrectPwd
+	session.SetSession(sessKeyUserId, u.Uid, sessId)
 }
 
 // logout
-func (pubStub) Logout(ctx interface{}) {
+func (pubStub) Logout(sessId string) {
 	// set user to free stat
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		users.SetFree(uid)
 	}
-	session.DelSession(ctx)
+	session.DelSession(sessId)
 }
 
 // get user info
 // update session timestamp
-func (pubStub) GetUserInfo(ctx interface{}) (*types.User, error) {
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+func (pubStub) GetUserInfo(sessId string) *types.User {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
-			return nil, fmt.Errorf(errUserNotExist, uid)
+			panic(fmt.Errorf(errUserNotExist, uid))
 		}
-		session.SetSession(sessKeyUserId, u.Uid, ctx)
-		return u, nil
+		return u
 	}
-	return nil, errNotLoggedIn
+	panic(errNotLoggedIn)
 }
 
 // update user password
-func (pubStub) UpdateUserPassword(currPass, newPass string, ctx interface{}) error {
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+func (pubStub) UpdateUserPassword(currPass, newPass string, sessId string) {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u.Password != utils.Encrypt(currPass) {
-			return errIncorrectPwd
+			panic(errIncorrectPwd)
 		}
 		if !passReg.MatchString(newPass) {
-			return errIncorrectPasswordFormat
+			panic(errIncorrectPasswordFormat)
 		}
 		if err := u.Update(types.NewUpdateString(types.UF_Password, utils.Encrypt(newPass))); err != nil {
-			return err
+			panic(err)
 		}
 		pushFunc(func() { insertOrUpdateUser(u) })
-		return nil
+		session.SetSession(sessKeyUserId, uid, sessId)
 	}
-	return errNotLoggedIn
+	panic(errNotLoggedIn)
 }
 
 // update user avatar
-func (pubStub) UpdateUserAvatar(avatar []byte, ctx interface{}) error {
+func (pubStub) UpdateUserAvatar(avatar []byte, sessId string) {
 	if l := len(avatar); l > maxAvatar {
-		return fmt.Errorf(errExceedMaxAvatar, l)
+		panic(fmt.Errorf(errExceedMaxAvatar, l))
 	}
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if err := u.Update(types.NewUpdate2dByte(types.UF_Avatar, avatar)); err != nil {
-			return err
+			panic(err)
 		}
 		pushFunc(func() { insertOrUpdateUser(u) })
-		return nil
+		session.SetSession(sessKeyUserId, uid, sessId)
 	}
-	return errNotLoggedIn
+	panic(errNotLoggedIn)
 }
 
 // get halls
-func (pubStub) GetHalls(ctx interface{}) (map[string]interface{}, error) {
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+func (pubStub) GetHalls(sessId string) map[string]interface{} {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
-			return nil, fmt.Errorf(errUserNotExist, uid)
+			panic(fmt.Errorf(errUserNotExist, uid))
 		}
 		return map[string]interface{}{
 			"normal":     normalHall.Wrap(),
 			"tournament": tournamentHall.Wrap(),
-		}, nil
+		}
 	}
-	return nil, errNotLoggedIn
+	panic(errNotLoggedIn)
 }
 
 // get normal table
-func (pubStub) GetNormalTable(tid int, ctx interface{}) (map[string]interface{}, error) {
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+func (pubStub) GetNormalTable(tid int, sessId string) map[string]interface{} {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
-			return nil, fmt.Errorf(errUserNotExist, uid)
+			panic(fmt.Errorf(errUserNotExist, uid))
 		}
-		return normalHall.GetTableById(tid).WrapTable(), nil
+		return normalHall.GetTableById(tid).WrapTable()
 	}
-	return nil, errNotLoggedIn
+	panic(errNotLoggedIn)
 }
 
 // get tournament table
-func (pubStub) GetTournamentTable(tid int, ctx interface{}) (map[string]interface{}, error) {
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+func (pubStub) GetTournamentTable(tid int, sessId string) map[string]interface{} {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
-			return nil, fmt.Errorf(errUserNotExist, uid)
+			panic(fmt.Errorf(errUserNotExist, uid))
 		}
 		if tournamentHall == nil {
-			return nil, errNilTournamentHall
+			panic(errNilTournamentHall)
 		}
-		return tournamentHall.GetTableById(tid).WrapTable(), nil
+		return tournamentHall.GetTableById(tid).WrapTable()
 	}
-	return nil, errNotLoggedIn
+	panic(errNotLoggedIn)
 }
 
 // join a normal game, play or observe
 // actually it is just get a token
-func (pubStub) Join(tid int, isOb bool, ctx interface{}) (string, error) {
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+func (pubStub) Join(tid int, isOb bool, sessId string) string {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
-			return "", fmt.Errorf(errUserNotExist, uid)
+			panic(fmt.Errorf(errUserNotExist, uid))
 		}
-		session.SetSession(sessKeyUserId, uid, ctx)
 		if users.IsBusyUser(uid) {
-			return "", errAlreadyInGame
+			panic(errAlreadyInGame)
 		}
 		t := normalHall.GetTableById(tid)
 		if t == nil {
-			return "", fmt.Errorf(errTableNotExist, tid)
+			panic(fmt.Errorf(errTableNotExist, tid))
 		}
 		if u.GetBalance() < t.GetBet() {
-			return "", errBalNotSufficient
+			panic(errBalNotSufficient)
 		}
 		if u.GetEnergy() <= 0 {
-			return "", errInsufficientEnergy
+			panic(errInsufficientEnergy)
 		}
 		if !isOb {
 			if t.IsStart() {
-				return "", errTableGameIsStarted
+				panic(errTableGameIsStarted)
 			}
 			if t.IsFull() {
-				return "", errTableIsFull
+				panic(errTableIsFull)
 			}
 		}
-		return utils.GenerateToken(uid, u.Nickname, false, isOb, tid)
+		token, err := utils.GenerateToken(uid, u.Nickname, false, isOb, tid)
+		if err != nil {
+			panic(err)
+		}
+		session.SetSession(sessKeyUserId, uid, sessId)
+		return token
 	}
-	return "", errNotLoggedIn
+	panic(errNotLoggedIn)
 }
 
 // TODO:
 // observe a tournament game
 // actually it is just get a token
-func (pubStub) ObserveTournament(tid int, ctx interface{}) (string, error) {
+func (pubStub) ObserveTournament(tid int, sessId string) string {
 	if tournamentHall == nil {
-		return "", errNilTournamentHall
+		panic(errNilTournamentHall)
 	}
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
-			return "", fmt.Errorf(errUserNotExist, uid)
+			panic(fmt.Errorf(errUserNotExist, uid))
 		}
-		session.SetSession(sessKeyUserId, uid, ctx)
 		if users.IsBusyUser(uid) {
-			return "", errAlreadyInGame
+			panic(errAlreadyInGame)
 		}
 		t := tournamentHall.GetTableById(tid)
 		if t == nil {
-			return "", fmt.Errorf(errTableNotExist, tid)
+			panic(fmt.Errorf(errTableNotExist, tid))
 		}
-		if t.IsStart() {
-			return "", errTableGameIsStarted
+		token, err := utils.GenerateToken(uid, u.Nickname, false, true, tid)
+		if err != nil {
+			panic(err)
 		}
-		return utils.GenerateToken(uid, u.Nickname, false, true, tid)
+		session.SetSession(sessKeyUserId, uid, sessId)
+		return token
 	}
-	return "", errNotLoggedIn
+	panic(errNotLoggedIn)
 }
 
 // automatically match a normal game for user
-func (pubStub) AutoMatch(ctx interface{}) (host string, token string, err error) {
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+func (pubStub) AutoMatch(sessId string) (string, string) {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
-			err = fmt.Errorf(errUserNotExist, uid)
-			return
+			panic(fmt.Errorf(errUserNotExist, uid))
 		}
-		session.SetSession(sessKeyUserId, uid, ctx)
 		if users.IsBusyUser(uid) {
-			err = errAlreadyInGame
-			return
+			panic(errAlreadyInGame)
 		}
 		if u.GetEnergy() <= 0 {
-			err = errInsufficientEnergy
-			return
+			panic(errInsufficientEnergy)
 		}
 		var table *types.Table = nil
 		var gap float64 = 100
@@ -404,140 +406,155 @@ func (pubStub) AutoMatch(ctx interface{}) (host string, token string, err error)
 			}
 		}
 		if table == nil {
-			err = errCantMatchOpponent
-			return
+			panic(errCantMatchOpponent)
 		}
-		token, err = utils.GenerateToken(uid, u.Nickname, false, false, table.TId)
-		return table.GetHost(), token, err
+		token, err := utils.GenerateToken(uid, u.Nickname, false, false, table.TId)
+		if err != nil {
+			panic(err)
+		}
+		session.SetSession(sessKeyUserId, uid, sessId)
+		return table.GetHost(), token
 	}
-	err = errNotLoggedIn
-	return
+	panic(errNotLoggedIn)
 }
 
 // create a game
-func (pubStub) Create(title string, bet int, ctx interface{}) (int, error) {
+func (pubStub) Create(title string, bet int, sessId string) int {
 	if bet < 0 {
-		return -1, errNegativeBet
+		panic(errNegativeBet)
 	}
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
-			return -1, fmt.Errorf(errUserNotExist, uid)
+			panic(fmt.Errorf(errUserNotExist, uid))
 		}
 		if users.IsBusyUser(uid) {
-			return -1, errAlreadyInGame
+			panic(errAlreadyInGame)
 		}
 		if u.GetBalance() < bet {
-			return -1, errBalNotSufficient
+			panic(errBalNotSufficient)
 		}
 		if u.GetEnergy() <= 0 {
-			return -1, errInsufficientEnergy
+			panic(errInsufficientEnergy)
 		}
 		id := normalHall.NextTableId()
 		ip := clients.BestServer()
 		if ip == "" {
-			return -1, fmt.Errorf("当前没有游戏服务器工作")
+			panic(errNoWorkingGameServer)
 		}
 		host := ip + ":" + gameServerSocketPort
 		if err := clients.GetStub(ip).Create(id); err != nil {
-			return -1, err
+			panic(err)
 		}
-		return id, normalHall.NewTable(id, title, host, bet)
+		if err := normalHall.NewTable(id, title, host, bet); err != nil {
+			panic(err)
+		}
+		return id
 	}
-	return -1, errNotLoggedIn
+	panic(errNotLoggedIn)
 }
 
 // TODO:
 // apply for a tournament
-func (pubStub) Apply(ctx interface{}) (host, token string, err error) {
+func (pubStub) Apply(sessId string) (string, string) {
 	if tournamentHall == nil {
-		err = errCantApplyForNilTournament
-		return
+		panic(errCantApplyForNilTournament)
 	}
-	if uid, ok := session.GetSession(sessKeyUserId, ctx).(int); ok {
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
-			err = fmt.Errorf(errUserNotExist, uid)
-			return
+			panic(fmt.Errorf(errUserNotExist, uid))
 		}
 		if users.IsBusyUser(uid) {
-			err = errAlreadyInGame
-			return
+			panic(errAlreadyInGame)
 		}
-		session.SetSession(sessKeyUserId, uid, ctx)
-		token, err = utils.GenerateToken(uid, u.Nickname, true, false, -1)
-		return
+		token, err := utils.GenerateToken(uid, u.Nickname, true, false, -1)
+		if err != nil {
+			panic(err)
+		}
+		session.SetSession(sessKeyUserId, uid, sessId)
+		return tournamentHall.GetHost(), token
 	}
-	err = errNotLoggedIn
-	return
+	panic(errNotLoggedIn)
 }
 
 // withdraw
 // amount in mBTC
-func (pubStub) Withdraw(amount int, address string, ctx interface{}) (string, error) {
+func (pubStub) Withdraw(amount int, address string, sessId string) string {
 	// check if amount >= minWithdraw
 	if amount < minWithdraw {
-		return "", errExceedMinWithdraw
+		panic(errExceedMinWithdraw)
 	}
 	// check btc address
 	if isValid, err := validateAddress(address); err != nil {
-		return "", err
+		panic(err)
 	} else if !isValid {
-		return "", errInvalidBtcAddr
+		panic(errInvalidBtcAddr)
 	}
 	// check if user logged in
-	uid, ok := session.GetSession(sessKeyUserId, ctx).(int)
-	if !ok {
-		return "", errNotLoggedIn
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
+		u := getUserById(uid)
+		if u == nil {
+			panic(fmt.Errorf(errUserNotExist, uid))
+		}
+		// check balance
+		if u.GetBalance() < amount {
+			panic(errBalNotSufficient)
+		}
+		// send coin
+		txid, err := sendBitcoin(address, amount)
+		if err != nil {
+			panic(err)
+		}
+		// update user in the cache
+		if err := u.Update(types.NewUpdateInt(types.UF_Balance, u.GetBalance()-amount)); err != nil {
+			panic(err)
+		}
+		pushFunc(func() { insertWithdraw(txid, u.Nickname, address, amount) })
+		session.SetSession(sessKeyUserId, uid, sessId)
+		return txid
 	}
-
-	u := getUserById(uid)
-	if u == nil {
-		return "", fmt.Errorf(errUserNotExist, uid)
-	}
-	// check balance
-	if u.GetBalance() < amount {
-		return "", errBalNotSufficient
-	}
-	// send coin
-	txid, err := sendBitcoin(address, amount)
-	if err != nil {
-		return "", err
-	}
-	// update user in the cache
-	if err := u.Update(types.NewUpdateInt(types.UF_Balance, u.GetBalance()-amount)); err != nil {
-		return "", err
-	}
-	pushFunc(func() { insertWithdraw(txid, u.Nickname, address, amount) })
-	return txid, nil
+	panic(errNotLoggedIn)
 }
 
 // buy energy
-func (pubStub) BuyEnergy(amountOfmBTC int, ctx interface{}) error {
+func (pubStub) BuyEnergy(amountOfmBTC int, sessId string) {
 	// check if amountOfmBTC >= minEnergy
 	if amountOfmBTC < minEnergy {
-		return errExceedMinEnergy
+		panic(errExceedMinEnergy)
 	}
 	// check if user logged in
-	uid, ok := session.GetSession(sessKeyUserId, ctx).(int)
-	if !ok {
-		return errNotLoggedIn
+	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
+		u := getUserById(uid)
+		if u == nil {
+			panic(fmt.Errorf(errUserNotExist, uid))
+		}
+		// check balance
+		if u.GetBalance() < amountOfmBTC {
+			panic(errBalNotSufficient)
+		}
+		// update user in the cache
+		if err := u.Update(types.NewUpdateInt(types.UF_Balance, u.GetBalance()-amountOfmBTC),
+			types.NewUpdateInt(types.UF_Energy, u.GetEnergy()+amountOfmBTC*ratioEnergy2mBTC)); err != nil {
+			panic(err)
+		}
+		pushFunc(func() { buyEnergy(u.Uid, amountOfmBTC) })
+		session.SetSession(sessKeyUserId, uid, sessId)
 	}
-	session.SetSession(sessKeyUserId, uid, ctx)
+	panic(errNotLoggedIn)
+}
 
-	u := getUserById(uid)
-	if u == nil {
-		return fmt.Errorf(errUserNotExist, uid)
-	}
-	// check balance
-	if u.GetBalance() < amountOfmBTC {
-		return errBalNotSufficient
-	}
-	// update user in the cache
-	if err := u.Update(types.NewUpdateInt(types.UF_Balance, u.GetBalance()-amountOfmBTC),
-		types.NewUpdateInt(types.UF_Energy, u.GetEnergy()+amountOfmBTC*ratioEnergy2mBTC)); err != nil {
-		return err
-	}
-	pushFunc(func() { buyEnergy(u.Uid, amountOfmBTC) })
-	return nil
+// online players
+func (pubStub) NumOfOnlinePlayer() int {
+	// connections hold by all game servers
+	// return clients.TotalConnections()
+
+	// judge by session
+	return session.NumOfOnlineUsers()
+}
+
+// 不需要sessionId 的函数
+var notNeedSessFunc = map[string]bool{
+	"NumOfOnlinePlayer": true,
+	"CreateSession":     true,
 }

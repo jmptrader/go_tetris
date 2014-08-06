@@ -19,7 +19,6 @@ type authServer struct {
 	SetNormalGameResult func(tid, winner, loser int) error
 	SetTournamentResult func(tid, winner, loser int) error
 	Apply               func(uid int) (int, error)
-	Allocate            func(uid int) (int, error)
 }
 
 type authFilter struct{}

@@ -192,11 +192,13 @@ forLoop:
 				continue forLoop
 			}
 			if isOb {
+				log.Debug("observer can not switch ready state")
 				send(conn, descError, "观战者无法准备或者取消准备")
 				continue forLoop
 			}
 			if err := authServerStub.SwitchReady(tid, uid); err != nil {
 				log.Warn("can not switch user's ready state: %v", err)
+				send(conn, descError, err.Error())
 				continue forLoop
 			}
 			refreshTable(tid, isTournament)

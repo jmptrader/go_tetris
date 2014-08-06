@@ -25,53 +25,52 @@ func (privStub) Unregister(ctx interface{}) {
 }
 
 // join a game
-func (privStub) Join(tid, uid int, isOb bool) error {
+func (privStub) Join(tid, uid int, isOb bool) {
 	t := normalHall.GetTableById(tid)
 	u := getUserById(uid)
-	bet := t.GetBet()
 	if t == nil {
-		return fmt.Errorf(errTableNotExist, tid)
+		panic(fmt.Errorf(errTableNotExist, tid))
 	}
 	if u == nil {
-		return fmt.Errorf(errUserNotExist, uid)
+		panic(fmt.Errorf(errUserNotExist, uid))
 	}
 	// check busy
 	if users.IsBusyUser(uid) {
-		return errAlreadyInGame
+		panic(errAlreadyInGame)
 	}
 	// check energy
 	if u.GetEnergy() <= 0 {
-		return errInsufficientEnergy
+		panic(errInsufficientEnergy)
 	}
 	// check balance
-	if u.GetBalance() < bet {
-		return errBalNotSufficient
+	if bet := t.GetBet(); u.GetBalance() < bet {
+		panic(errBalNotSufficient)
 	}
 	if err := normalHall.JoinTable(tid, u, isOb); err != nil {
-		return err
+		panic(err)
 	}
+	// !!!! NOT UPDATE HERE, SHOULD UPDATE ON GAME START
+	// SEE tableChecker
 	// update energy, balance, freezed
-	if err := u.Update(types.NewUpdateInt(types.UF_Energy, u.GetEnergy()-1),
-		types.NewUpdateInt(types.UF_Balance, u.GetBalance()-bet),
-		types.NewUpdateInt(types.UF_Freezed, u.GetFreezed()+bet)); err != nil {
-		return err
-	}
-	pushFunc(func() { insertOrUpdateUser(u) })
+	// if err := u.Update(types.NewUpdateInt(types.UF_Energy, u.GetEnergy()-1),
+	// 	types.NewUpdateInt(types.UF_Balance, u.GetBalance()-bet),
+	// 	types.NewUpdateInt(types.UF_Freezed, u.GetFreezed()+bet)); err != nil {
+	// 	panic(err)
+	// }
+	// pushFunc(func() { insertOrUpdateUser(u) })
 	users.SetBusy(uid)
-	return nil
 }
 
 // observe a tournament
-func (privStub) ObTournament(tid, uid int) error {
+func (privStub) ObTournament(tid, uid int) {
 	u := getUserById(uid)
 	if u == nil {
-		return fmt.Errorf(errUserNotExist, uid)
+		panic(fmt.Errorf(errUserNotExist, uid))
 	}
 	if err := tournamentHall.JoinTable(tid, u, true); err != nil {
-		return err
+		panic(err)
 	}
 	users.SetBusy(uid)
-	return nil
 }
 
 // set normal game result
@@ -84,7 +83,7 @@ func (privStub) SetNormalGameResult(tid, winner, loser int, ctx interface{}) {
 		upts = append(upts, types.NewUpdateInt(types.UF_Balance, w.GetBalance()+t.GetBet()*2))
 		upts = append(upts, types.NewUpdateInt(types.UF_Freezed, w.GetFreezed()-t.GetBet()))
 		upts = append(upts, types.NewUpdateInt(types.UF_Win, w.Win+1))
-		if w.Win > (w.Level * w.Level) {
+		if (w.Win + 1) > (w.Level * w.Level) {
 			upts = append(upts, types.NewUpdateInt(types.UF_Level, w.Level+1))
 		}
 		if err := w.Update(upts...); err != nil {
@@ -96,10 +95,8 @@ func (privStub) SetNormalGameResult(tid, winner, loser int, ctx interface{}) {
 	// update loser info
 	func() {
 		l := getUserById(loser)
-		upts := make([]types.UpdateInterface, 0)
-		upts = append(upts, types.NewUpdateInt(types.UF_Freezed, l.GetFreezed()-t.GetBet()))
-		upts = append(upts, types.NewUpdateInt(types.UF_Lose, l.Lose+1))
-		if err := l.Update(upts...); err != nil {
+		if err := l.Update(types.NewUpdateInt(types.UF_Freezed, l.GetFreezed()-t.GetBet()),
+			types.NewUpdateInt(types.UF_Lose, l.Lose+1)); err != nil {
 			log.Critical("set normal hall game result, can not update loser %v: %v", l.Nickname, err)
 		}
 		pushFunc(func() { insertOrUpdateUser(l) })
@@ -114,7 +111,7 @@ func (privStub) SetNormalGameResult(tid, winner, loser int, ctx interface{}) {
 }
 
 // set tournament game result
-func (privStub) SetTournamentResult(tid, winner, loser int) (int, error) {
+func (privStub) SetTournamentResult(tid, winner, loser int) int {
 	t := tournamentHall.GetTableById(tid)
 	// update winner info
 	w := getUserById(winner)
@@ -144,7 +141,7 @@ func (privStub) SetTournamentResult(tid, winner, loser int) (int, error) {
 	nid, err := tournamentHall.Allocate(w)
 	if err != nil {
 		log.Critical("tournament hall -> can not allocate user %v to next table: %v", w.Nickname, err)
-		return -1, err
+		panic(err)
 	}
 
 	// winner continue to player, update busy timestamp
@@ -153,29 +150,30 @@ func (privStub) SetTournamentResult(tid, winner, loser int) (int, error) {
 	// loser and observers quit, set free
 	users.SetFree(loser)
 	users.SetFree(t.GetObservers()...)
-	return nid, nil
+	return nid
 }
 
 // TODO:
 // apply for tournament
-func (privStub) Apply(uid int) (int, error) {
+func (privStub) Apply(uid int) int {
 	tid, err := tournamentHall.Apply(getUserById(uid))
 	if err != nil {
-		return -1, err
+		panic(err)
 	}
 	users.SetBusy(uid)
-	return tid, nil
+	return tid
 }
 
+// deprecated, useless, because SetTournamentResult already handle the Allocate
 // allocate for tournament
-func (privStub) Allocate(uid int) (int, error) {
-	tid, err := tournamentHall.Allocate(getUserById(uid))
-	if err != nil {
-		return -1, err
-	}
-	users.SetBusy(uid)
-	return tid, nil
-}
+// func (privStub) Allocate(uid int) int {
+// 	tid, err := tournamentHall.Allocate(getUserById(uid))
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	users.SetBusy(uid)
+// 	return tid
+// }
 
 // quit a user
 func (privStub) Quit(tid, uid int, isTournament bool) {
@@ -190,20 +188,79 @@ func (privStub) Quit(tid, uid int, isTournament bool) {
 var errTournamentDefaultReady = fmt.Errorf("tournament default is ready and can not set to not ready, what is wrong?")
 
 // switch ready state
-func (privStub) SwitchReady(tid, uid int, ctx interface{}) error {
+func (privStub) SwitchReady(tid, uid int, ctx interface{}) {
 	if isTournament(tid) {
-		return errTournamentDefaultReady
+		panic(errTournamentDefaultReady)
 	}
 	t := normalHall.GetTableById(tid)
-	t.SwitchReady(uid)
-	if t.ShouldStart() {
-		if err := clients.GetStub(utils.GetIp(ctx)).Start(tid); err != nil {
-			log.Debug("can not inform game server to start the table %d", tid)
-		}
+	u := getUserById(uid)
+	if u == nil {
+		log.Debug("the user %d is not exist", uid)
+		panic(fmt.Errorf(errUserNotExist, uid))
 	}
-	return nil
+	if u.GetEnergy() <= 0 {
+		panic(errInsufficientEnergy)
+	}
+	if u.GetBalance() < t.GetBet() {
+		panic(errBalNotSufficient)
+	}
+	t.SwitchReady(uid)
+	tableChecker(t, ctx)
 }
 
 func isTournament(tid int) bool {
 	return tid >= 1e5
+}
+
+func tableChecker(t *types.Table, ctx interface{}) {
+	if !t.ShouldStart() {
+		return
+	}
+	if err := clients.GetStub(utils.GetIp(ctx)).Start(t.TId); err != nil {
+		log.Critical("can not inform game server to start the table %d", t.TId)
+		return
+	}
+	t.Start()
+
+	u1p := getUserById(t.Get1pUid())
+	u2p := getUserById(t.Get2pUid())
+	if u1p == nil || u2p == nil {
+		log.Critical("nil user? logic error")
+		return
+	}
+
+	e1p := u1p.GetEnergy()
+	e2p := u2p.GetEnergy()
+	if e1p < 0 || e2p < 0 {
+		log.Critical("negative energy\n1p %v has %v energy and 2p %v has %v energy", u1p.Nickname, e1p, u2p.Nickname, e2p)
+	}
+	if err := u1p.Update(types.NewUpdateInt(types.UF_Energy, e1p-1)); err != nil {
+		log.Critical("can not update energy: %v", err)
+	}
+	if err := u2p.Update(types.NewUpdateInt(types.UF_Energy, e2p-1)); err != nil {
+		log.Critical("can not update energy: %v", err)
+	}
+
+	// update balance
+	if bet := t.GetBet(); bet > 0 {
+		b1p, b2p := u1p.GetBalance(), u2p.GetBalance()
+		f1p, f2p := u1p.GetFreezed(), u2p.GetFreezed()
+		if b1p < bet || b2p < bet {
+			log.Critical("balance is smaller than bet\nbet: %v, balance of 1p: %v, balance of 2p: %v", bet, b1p, b2p)
+		}
+		if f1p != 0 || f2p != 0 {
+			log.Critical("freezed is not 0: user %v has %v freezed, user %v has %v freezed", u1p.Nickname, f1p, u2p.Nickname, f2p)
+		}
+		if err := u1p.Update(types.NewUpdateInt(types.UF_Balance, b1p-bet),
+			types.NewUpdateInt(types.UF_Freezed, f1p+bet)); err != nil {
+			log.Critical("can not update freezed and balance: %v", err)
+		}
+		if err := u2p.Update(types.NewUpdateInt(types.UF_Balance, b2p-bet),
+			types.NewUpdateInt(types.UF_Freezed, f2p+bet)); err != nil {
+			log.Critical("can not update freezed and balance: %v", err)
+		}
+	}
+
+	// update userinfo in database
+	pushFunc(func() { insertOrUpdateUser(u1p, u2p) })
 }
