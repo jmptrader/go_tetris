@@ -13,5 +13,6 @@ func HproseLog(fName string, params []reflect.Value, ctx interface{}) string {
 		str += fmt.Sprintf("%v  ", v.Interface())
 	}
 	str += "\n"
+	str += fmt.Sprintf("length of parameters is %v\n", len(params))
 	return str
 }

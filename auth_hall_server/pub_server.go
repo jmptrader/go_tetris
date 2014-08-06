@@ -26,8 +26,10 @@ func (pubSe) OnBeforeInvoke(fName string, params []reflect.Value, isSimple bool,
 		panic(errClosingServer)
 	}
 
-	if !notNeedSessFunc[fName] && !session.IsSessIdExist(params[len(params)-1].String()) {
-		panic(errCreateSessionFirst)
+	if l := len(params); l > 0 {
+		if !notNeedSessFunc[fName] && !session.IsSessIdExist(params[l-1].String()) {
+			panic(errCreateSessionFirst)
+		}
 	}
 }
 
