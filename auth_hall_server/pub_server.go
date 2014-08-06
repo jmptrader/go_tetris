@@ -38,7 +38,7 @@ func (pubSe) OnAfterInvoke(string, []reflect.Value, bool, []reflect.Value, inter
 func (pubSe) OnSendError(error, interface{}) {}
 
 func initPubServer() {
-	httpPubServer.DebugEnabled = true
+	httpPubServer.DebugEnabled = *debug
 	httpPubServer.AddMethods(pubStub{})
 	httpPubServer.ServiceEvent = pubSe{}
 	httpPubServer.CrossDomainEnabled = true
