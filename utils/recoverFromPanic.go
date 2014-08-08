@@ -7,8 +7,9 @@ func RecoverFromPanic(format string, log func(string, ...interface{}), f func())
 		if log != nil {
 			log(format+"%v\n%s", err, debug.Stack())
 		}
-	}
-	if f != nil {
-		go f()
+		// run the function in new goroutine
+		if f != nil {
+			go f()
+		}
 	}
 }

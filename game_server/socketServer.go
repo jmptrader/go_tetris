@@ -165,7 +165,12 @@ func serveTcpConn(conn *net.TCPConn) {
 }
 
 func handleConn(conn *net.TCPConn, uid, tid int, nickname string, isOb, is1p, isTournament bool) {
-	defer utils.RecoverFromPanic("handle connection panic: ", log.Critical, nil)
+	var handleQuit = func() {
+		quit(tid, uid, nickname, is1p, isTournament)
+		closeConn(conn)
+		refreshTable(tid, isTournament)
+	}
+	defer utils.RecoverFromPanic("handle connection panic: ", log.Critical, handleQuit)
 forLoop:
 	for {
 		table := tables.GetTableById(tid)
@@ -173,9 +178,7 @@ forLoop:
 		data, err := recv(conn)
 		if err != nil {
 			log.Debug("can not receive request from table %d, user %s: %v", tid, nickname, err)
-			quit(tid, uid, nickname, is1p, isTournament)
-			closeConn(conn)
-			refreshTable(tid, isTournament)
+			handleQuit()
 			return
 		}
 		switch data.Cmd {
@@ -206,9 +209,7 @@ forLoop:
 			refreshTable(tid, isTournament)
 		case cmdQuit:
 			// quit a game
-			quit(tid, uid, nickname, is1p, isTournament)
-			closeConn(conn)
-			refreshTable(tid, isTournament)
+			handleQuit()
 			return
 		case cmdOperate:
 			if !table.IsStart() {
@@ -247,15 +248,15 @@ forLoop:
 func quit(tid, uid int, nickname string, is1p, isTournament bool) {
 	table := tables.GetTableById(tid)
 	table.Quit(uid)
+	if err := authServerStub.Quit(tid, uid, isTournament); err != nil {
+		log.Warn("hprose error, can not quit user %s from table %d: %v", nickname, tid, err)
+	}
 	if table.IsStart() {
 		if is1p {
 			table.GameoverChan <- types.Gameover1pQuit
 		} else {
 			table.GameoverChan <- types.Gameover2pQuit
 		}
-	}
-	if err := authServerStub.Quit(tid, uid, isTournament); err != nil {
-		log.Warn("hprose error, can not quit user %s from table %d: %v", nickname, tid, err)
 	}
 }
 
