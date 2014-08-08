@@ -22,7 +22,7 @@ func execFuncs() {
 		select {
 		case f := <-funcQueue:
 			f()
-		case <-time.After(30 * time.Second):
+		case <-time.After(10 * time.Second):
 			// no function to be execute in 30 seconds
 			if allGSReleased {
 				progCanExit = true
