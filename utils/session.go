@@ -72,7 +72,7 @@ func (ss *sessionStore) NumOfOnlineUsers() int {
 
 // generate unique session id
 func (ss *sessionStore) generateSessionId() string {
-	return getRand()
+	return RandString(32)
 }
 
 // check if session id is already exist

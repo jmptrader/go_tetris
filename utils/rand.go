@@ -16,7 +16,3 @@ func RandString(n int) string {
 	}
 	return string(bytes)
 }
-
-func getRand() string {
-	return RandString(16)
-}
