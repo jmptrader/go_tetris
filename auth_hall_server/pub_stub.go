@@ -69,17 +69,21 @@ func (pubStub) CreateSession() string {
 
 // send mail, register auth
 func (pubStub) SendMailRegister(to string, sessId string) {
+	if u := getUserByEmail(to); u != nil {
+		panic(errEmailExist)
+	}
 	authenCode := utils.RandString(8)
 	session.SetSession(sessKeyRegister, authenCode, sessId)
 	session.SetSession(sessKeyEmail, to, sessId)
-	text := "请输入验证码: " + authenCode
-	subject := "注册验证"
-	pushFunc(func() {
+	f := func() {
+		text := "请输入验证码: " + authenCode
+		subject := "注册验证"
 		if err := utils.SendMail(text, subject, to); err != nil {
 			log.Warn("send mail to %v error: %v", to, err)
 			log.Warn("text is %v", text)
 		}
-	})
+	}
+	pushFunc(f)
 }
 
 // send mail, forget password
@@ -90,14 +94,15 @@ func (pubStub) SendMailForget(to string, sessId string) {
 	authenCode := utils.RandString(8)
 	session.SetSession(sessKeyForgetPass, authenCode, sessId)
 	session.SetSession(sessKeyEmail, to, sessId)
-	text := "请输入验证码: " + authenCode
-	subject := "找回密码"
-	pushFunc(func() {
+	f := func() {
+		text := "请输入验证码: " + authenCode
+		subject := "找回密码"
 		if err := utils.SendMail(text, subject, to); err != nil {
 			log.Warn("send mail to %v error: %v", to, err)
 			log.Warn("text is %v", text)
 		}
-	})
+	}
+	pushFunc(f)
 }
 
 // forget password, modify it
