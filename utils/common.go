@@ -20,7 +20,6 @@ func SendDataOverTcp(w io.Writer, data []byte) (err error) {
 	buf := make([]byte, tcpBuffer)
 	binary.BigEndian.PutUint32(buf, uint32(n))
 	copy(buf[4:], data)
-	// _, err = w.Write(buf[:n+4])
 	_, err = w.Write(buf)
 	return err
 }

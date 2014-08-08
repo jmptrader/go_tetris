@@ -28,8 +28,8 @@ func initSocketServer() {
 		os.Exit(1)
 	}
 
+	log.Info("successfully initialization, socket server accepting connection...")
 	go func() {
-		log.Info("successfully initialization, socket server accepting connection...")
 		for {
 			conn, err := l.AcceptTCP()
 			if err != nil {

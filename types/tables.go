@@ -342,6 +342,13 @@ func (t *Table) ShouldStart() bool {
 	return t.ready1p && t.ready2p
 }
 
+const (
+	maxGameDurationInSecs = 300
+	maxIdleDurationInSecs = 3600
+)
+
+var MaxDurationOfTable = maxGameDurationInSecs + maxIdleDurationInSecs
+
 // check if the table should expire
 func (t *Table) Expire() bool {
 	t.mu.Lock()
@@ -352,9 +359,9 @@ func (t *Table) Expire() bool {
 	// there should be some network errors occur
 	// so we have to manually release the table otherwise the users are not able to join game any more
 	if t.IsStart() {
-		return (tNow - t.startTime) > 300
+		return (tNow - t.startTime) > maxGameDurationInSecs
 	}
-	return (tNow - t.startTime) > 3600
+	return (tNow - t.startTime) > maxIdleDurationInSecs
 }
 
 // start the game in the table

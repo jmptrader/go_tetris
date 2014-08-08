@@ -42,7 +42,7 @@ func initPubServer() {
 	httpPubServer.AddMethods(pubStub{})
 	httpPubServer.ServiceEvent = pubSe{}
 	httpPubServer.CrossDomainEnabled = true
-	// httpServer.AddAccessControlAllowOrigin()
+	httpPubServer.SetCrossDomainXmlFile(crossDomainFile)
 	go servePubHttp()
 }
 

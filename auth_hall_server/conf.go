@@ -18,7 +18,7 @@ var (
 	emailId, emailUser, emailPass, emailHost, emailFrom string
 	cookieEncryptKey, tokenEncryptKey, scryptSalt       string
 	emailSMTPPort                                       int
-	cookieDomain                                        string
+	cookieDomain, crossDomainFile                       string
 	privKey                                             []byte
 )
 
@@ -53,6 +53,7 @@ func initConf() {
 	tokenEncryptKey = conf.String("tokenEncryptKey")
 	scryptSalt = conf.String("scryptSalt")
 	cookieDomain = conf.String("domain")
+	crossDomainFile = conf.String("crossDomainFile")
 	emailSMTPPort, err = conf.Int("emailPort")
 	if err != nil {
 		panic("can not parse email smtp port: " + err.Error())
@@ -62,7 +63,7 @@ func initConf() {
 		dbUser, dbPass, dbProtocol, dbSockAddress, dbName,
 		logPath, privRpcPort, pubRpcPort, privKeyString,
 		emailId, emailFrom, emailHost, emailPass, emailUser, emailSMTPPort,
-		cookieEncryptKey, tokenEncryptKey, scryptSalt)
+		cookieEncryptKey, tokenEncryptKey, scryptSalt, crossDomainFile)
 
 	// done configuration checking
 	// initialize
