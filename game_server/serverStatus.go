@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/gogames/go_tetris/utils"
+)
 
 // the status indicate if a new connection should be accepted or not
 var serverStatus = statusChecking
@@ -84,12 +88,15 @@ func isServerActive() bool {
 }
 
 func initServerStatus() {
-	go func() {
-		for {
-			if serverStatus == statusChecking {
-				activateServer()
-			}
-			time.Sleep(5 * time.Second)
+	go ss()
+}
+
+func ss() {
+	defer utils.RecoverFromPanic("server status panic: ", log.Critical, ss)
+	for {
+		if serverStatus == statusChecking {
+			activateServer()
 		}
-	}()
+		time.Sleep(5 * time.Second)
+	}
 }

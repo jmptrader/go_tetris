@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/gogames/go_tetris/types"
+	"github.com/gogames/go_tetris/utils"
 )
 
 // user cache never expire
@@ -20,9 +21,9 @@ func initUsers() {
 
 var nextGiveoutTime time.Time
 
-// give out energy to all users every 00:00:00 on tiemzone utc +8
+// give out energy to all users every 00:00:00
 func energyGiveout() {
-	defer recoverFromPanic("energy give out panic: ", energyGiveout)
+	defer utils.RecoverFromPanic("energy give out panic: ", log.Critical, energyGiveout)
 	for {
 		if time.Now().Sub(nextGiveoutTime).Seconds() >= 0 {
 			setNextGiveoutTime()

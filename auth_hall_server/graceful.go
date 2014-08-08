@@ -5,6 +5,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gogames/go_tetris/utils"
 )
 
 // gracefully exit the program
@@ -16,7 +18,7 @@ var allGSReleased = false
 var progCanExit = false
 
 func notify() {
-	defer recoverFromPanic("notify panic: ", notify)
+	defer utils.RecoverFromPanic("notify panic: ", log.Critical, notify)
 	sigs := make(chan os.Signal)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 	// capture the signal

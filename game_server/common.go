@@ -39,6 +39,9 @@ func send(conn *net.TCPConn, desc string, data interface{}) error {
 // close a connection
 func closeConn(conns ...*net.TCPConn) {
 	for _, conn := range conns {
+		if conn == nil {
+			continue
+		}
 		if err := conn.Close(); err != nil {
 			log.Debug("can not close the connection: %v", err)
 		}

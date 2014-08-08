@@ -6,6 +6,7 @@ import (
 
 	"github.com/conformal/btcjson"
 	"github.com/gogames/go_tetris/types"
+	"github.com/gogames/go_tetris/utils"
 )
 
 var (
@@ -29,7 +30,7 @@ func initBitcoin() {
 }
 
 func recv() {
-	defer recoverFromPanic("receiving bitcoin error: ", recv)
+	defer utils.RecoverFromPanic("receiving bitcoin error: ", log.Critical, recv)
 	for {
 		func() {
 			var err error

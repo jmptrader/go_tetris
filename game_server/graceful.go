@@ -8,11 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gogames/go_tetris/utils"
 )
 
 func initGraceful() { go notify() }
 
 func notify() {
+	defer utils.RecoverFromPanic("notify panic: ", log.Critical, notify)
 	sigs := make(chan os.Signal)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 	select {

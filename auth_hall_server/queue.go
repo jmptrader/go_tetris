@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/gogames/go_tetris/utils"
+)
 
 var funcQueue = make(chan func(), 1<<10)
 
@@ -18,7 +22,7 @@ func getFunc() func() {
 }
 
 func execFuncs() {
-	defer recoverFromPanic("queue panic: ", execFuncs)
+	defer utils.RecoverFromPanic("queue panic: ", log.Critical, execFuncs)
 	for {
 		select {
 		case f := <-funcQueue:

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/gogames/go_tetris/types"
+	"github.com/gogames/go_tetris/utils"
 )
 
 var normalHall = types.NewNormalHall()
@@ -14,7 +15,7 @@ func initHall() {
 }
 
 func releaseExpires() {
-	defer recoverFromPanic("release expire tables panic: ", releaseExpires)
+	defer utils.RecoverFromPanic("release expire tables panic: ", log.Critical, releaseExpires)
 	for {
 		for tid, _ := range normalHall.GetExpireTables() {
 			tt := normalHall.GetTableById(tid)

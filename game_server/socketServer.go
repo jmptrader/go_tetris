@@ -81,6 +81,7 @@ const (
 )
 
 func serveTcpConn(conn *net.TCPConn) {
+	defer utils.RecoverFromPanic("serve tcp connection panic: ", log.Critical, nil)
 	// auth -> check the connection
 	data, err := recv(conn)
 	if err != nil {
@@ -164,6 +165,7 @@ func serveTcpConn(conn *net.TCPConn) {
 }
 
 func handleConn(conn *net.TCPConn, uid, tid int, nickname string, isOb, is1p, isTournament bool) {
+	defer utils.RecoverFromPanic("handle connection panic: ", log.Critical, nil)
 forLoop:
 	for {
 		table := tables.GetTableById(tid)

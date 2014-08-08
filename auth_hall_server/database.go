@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gogames/go_tetris/types"
+	"github.com/gogames/go_tetris/utils"
 )
 
 const (
@@ -73,7 +74,7 @@ func convFreezedToBalance() {
 
 // ping database to keep connection alive
 func keepDatabaseAlive() {
-	defer recoverFromPanic("ping database panic: ", keepDatabaseAlive)
+	defer utils.RecoverFromPanic("ping database panic: ", log.Critical, keepDatabaseAlive)
 	for {
 		time.Sleep(5 * time.Minute)
 		db.Ping()
