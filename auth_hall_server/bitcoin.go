@@ -29,6 +29,7 @@ func initBitcoin() {
 }
 
 func recv() {
+	defer recoverFromPanic("receiving bitcoin error: ", recv)
 	for {
 		func() {
 			var err error

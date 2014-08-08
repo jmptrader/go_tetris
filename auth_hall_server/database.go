@@ -73,8 +73,10 @@ func convFreezedToBalance() {
 
 // ping database to keep connection alive
 func keepDatabaseAlive() {
+	defer recoverFromPanic("ping database panic: ", keepDatabaseAlive)
 	for {
 		time.Sleep(5 * time.Minute)
+		db.Ping()
 		db.Ping()
 	}
 }

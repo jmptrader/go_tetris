@@ -18,12 +18,7 @@ func getFunc() func() {
 }
 
 func execFuncs() {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Critical("queue panic: %v", err)
-		}
-		go execFuncs()
-	}()
+	defer recoverFromPanic("queue panic: ", execFuncs)
 	for {
 		select {
 		case f := <-funcQueue:

@@ -14,6 +14,7 @@ func initUsers() {
 	users.Add(us...)
 
 	log.Info("initialize users in the cache...")
+	setNextGiveoutTime()
 	go energyGiveout()
 }
 
@@ -21,11 +22,11 @@ var nextGiveoutTime time.Time
 
 // give out energy to all users every 00:00:00 on tiemzone utc +8
 func energyGiveout() {
-	setNextGiveoutTime()
+	defer recoverFromPanic("energy give out panic: ", energyGiveout)
 	for {
 		if time.Now().Sub(nextGiveoutTime).Seconds() >= 0 {
 			setNextGiveoutTime()
-			users.EnergyGiveout()
+			users.EnergyGiveout(defaultEnergy)
 			insertOrUpdateUser(users.GetAllUsers()...)
 		}
 		time.Sleep(time.Minute)

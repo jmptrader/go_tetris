@@ -16,6 +16,7 @@ var allGSReleased = false
 var progCanExit = false
 
 func notify() {
+	defer recoverFromPanic("notify panic: ", notify)
 	sigs := make(chan os.Signal)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 	// capture the signal

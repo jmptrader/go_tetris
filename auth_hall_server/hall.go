@@ -14,6 +14,7 @@ func initHall() {
 }
 
 func releaseExpires() {
+	defer recoverFromPanic("release expire tables panic: ", releaseExpires)
 	for {
 		for tid, _ := range normalHall.GetExpireTables() {
 			tt := normalHall.GetTableById(tid)

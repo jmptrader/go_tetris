@@ -272,12 +272,12 @@ func (us *Users) Update(uid int, upts ...UpdateInterface) error {
 }
 
 // give energy to all users
-func (us *Users) EnergyGiveout() {
+func (us *Users) EnergyGiveout(energy int) {
 	for uid, u := range us.users {
-		if u.GetEnergy() > 0 {
+		if u.GetEnergy() >= energy {
 			continue
 		}
-		us.Update(uid, NewUpdateInt(UF_Energy, 10))
+		us.Update(uid, NewUpdateInt(UF_Energy, energy))
 	}
 }
 
