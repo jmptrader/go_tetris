@@ -9,6 +9,7 @@ import (
 	"github.com/gogames/go_tetris/tetris"
 	"github.com/gogames/go_tetris/timer"
 	"github.com/gogames/go_tetris/types"
+	"github.com/gogames/go_tetris/utils"
 )
 
 // auth server inform game server to become inactive
@@ -32,10 +33,14 @@ func countDown(table *types.Table) {
 // auth server inform game server to start a table
 func (stub) Start(tid int) {
 	go func() {
+		defer utils.RecoverFromPanic("game panic: ", log.Critical, nil)
 		table := tables.GetTableById(tid)
 		countDown(table)
 		table.StartGame()
-		go table.UpdateTimer()
+		go func() {
+			defer utils.RecoverFromPanic("update timer panic: ", log.Critical, nil)
+			table.UpdateTimer()
+		}()
 		serveGame(tid)
 	}()
 }
