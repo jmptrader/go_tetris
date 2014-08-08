@@ -180,7 +180,6 @@ func (pubStub) Register(email, password, nickname, authenCode string, sessId str
 	users.Add(u)
 	// async insert into database
 	pushFunc(func() { insertOrUpdateUser(u) })
-	return
 }
 
 // login
