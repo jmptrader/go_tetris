@@ -69,6 +69,9 @@ func (pubStub) CreateSession() string {
 
 // send mail, register auth
 func (pubStub) SendMailRegister(to string, sessId string) {
+	if !emailReg.MatchString(to) {
+		panic(errIncorrectEmailFormat)
+	}
 	if u := getUserByEmail(to); u != nil {
 		panic(errEmailExist)
 	}
@@ -88,6 +91,9 @@ func (pubStub) SendMailRegister(to string, sessId string) {
 
 // send mail, forget password
 func (pubStub) SendMailForget(to string, sessId string) {
+	if !emailReg.MatchString(to) {
+		panic(errIncorrectEmailFormat)
+	}
 	if u := getUserByEmail(to); u == nil {
 		panic(fmt.Errorf(errUserNotExist, to))
 	}
