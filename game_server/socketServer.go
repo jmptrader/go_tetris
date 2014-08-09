@@ -246,6 +246,7 @@ forLoop:
 
 // quit a game
 func quit(tid, uid int, nickname string, is1p, isTournament bool) {
+	log.Debug("user %s quit the table %d", nickname, tid)
 	table := tables.GetTableById(tid)
 	table.Quit(uid)
 	if err := authServerStub.Quit(tid, uid, isTournament); err != nil {

@@ -38,6 +38,9 @@ func (stub) Start(tid int) {
 		table := tables.GetTableById(tid)
 		countDown(table)
 		table.StartGame()
+		if !table.IsStart() {
+			log.Debug("why the game is not start?")
+		}
 		go func() {
 			defer utils.RecoverFromPanic("update timer panic: ", log.Critical, nil)
 			table.UpdateTimer()
