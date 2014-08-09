@@ -5,6 +5,9 @@ import (
 	"runtime/debug"
 )
 
+// recover from panic
+// log stack information
+// run new function
 func RecoverFromPanic(format string, log func(string, ...interface{}), f func()) {
 	format += "%v\n%s"
 	if err := recover(); err != nil {
@@ -15,8 +18,10 @@ func RecoverFromPanic(format string, log func(string, ...interface{}), f func())
 		}
 		// run the function in new goroutine
 		if f != nil {
-			// TODO: not sure if it is better to run the function in a new goroutine or not
-			f()
+			// Noted:
+			// should run the function in a new goroutine
+			// memory leak otherwise
+			go f()
 		}
 	}
 }

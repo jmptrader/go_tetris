@@ -23,7 +23,7 @@ func initSocketServer() {
 	}
 	l, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
-		log.Critical("can not resolve tcp address: %v", err)
+		log.Critical("can not listen tcp: %v", err)
 		time.Sleep(1 * time.Second)
 		os.Exit(1)
 	}
@@ -33,7 +33,7 @@ func initSocketServer() {
 		for {
 			conn, err := l.AcceptTCP()
 			if err != nil {
-				log.Warn("do not accept tcp connection: %v", err)
+				log.Critical("do not accept tcp connection: %v", err)
 				continue
 			}
 			if !isServerActive() {
