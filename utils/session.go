@@ -164,7 +164,7 @@ func (ss *sessionStore) String() string {
 	for sessId, sess := range ss.sess {
 		str += sessId + " --> \n"
 		for name, val := range sess.vals {
-			str += fmt.Sprintf("\t%v -> %v\n", name, val)
+			str += fmt.Sprintf("\t%v -> %+v\n", name, val)
 		}
 	}
 	return str
