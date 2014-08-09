@@ -22,6 +22,7 @@ func (stub) Deactivate() {
 // count down after a game start
 func countDown(table *types.Table) {
 	t := timer.NewTimer(1000)
+	t.Start()
 	for i := 3; i > 0; i-- {
 		sendAll(descStart, i, table.GetAllConns()...)
 		t.Wait()
