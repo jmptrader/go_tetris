@@ -167,7 +167,7 @@ func (us *Users) GetByNickname(nickname string) *User {
 // set users in busy mode
 func (us *Users) SetBusy(uids ...int) {
 	us.bmu.Lock()
-	defer us.bmu.RUnlock()
+	defer us.bmu.Unlock()
 	t := time.Now().Unix()
 	for _, uid := range uids {
 		us.busyUsers[uid] = t
