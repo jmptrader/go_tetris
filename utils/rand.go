@@ -1,18 +1,5 @@
-// 2013 Author: Beego
 package utils
 
-import "crypto/rand"
+import "github.com/astaxie/beego/utils"
 
-const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-
-func RandString(n int) string {
-	if n <= 0 {
-		return ""
-	}
-	var bytes = make([]byte, n)
-	rand.Read(bytes)
-	for i, b := range bytes {
-		bytes[i] = alphanum[b%byte(len(alphanum))]
-	}
-	return string(bytes)
-}
+var RandString = func(n int) string { return string(utils.RandomCreateBytes(n)) }
