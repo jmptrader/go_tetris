@@ -316,37 +316,49 @@ func (pubStub) GetTournamentTable(tid int, sessId string) map[string]interface{}
 // join a normal game, play or observe
 // actually it is just get a token
 func (pubStub) Join(tid int, isOb bool, sessId string) string {
+	defer log.Debug("return")
 	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
+		log.Debug("just debug")
 		u := getUserById(uid)
 		if u == nil {
 			panic(fmt.Errorf(errUserNotExist, uid))
 		}
+		log.Debug("just debug")
 		if users.IsBusyUser(uid) {
 			panic(errAlreadyInGame)
 		}
+		log.Debug("just debug")
 		t := normalHall.GetTableById(tid)
+		log.Debug("just debug")
 		if t == nil {
 			panic(fmt.Errorf(errTableNotExist, tid))
 		}
+		log.Debug("just debug")
 		if u.GetBalance() < t.GetBet() {
 			panic(errBalNotSufficient)
 		}
+		log.Debug("just debug")
 		if u.GetEnergy() <= 0 {
 			panic(errInsufficientEnergy)
 		}
+		log.Debug("just debug")
 		if !isOb {
 			if t.IsStart() {
 				panic(errTableGameIsStarted)
 			}
+			log.Debug("just debug")
 			if t.IsFull() {
 				panic(errTableIsFull)
 			}
+			log.Debug("just debug")
 		}
 		token, err := utils.GenerateToken(uid, u.Nickname, false, isOb, tid)
 		if err != nil {
 			panic(err)
 		}
+		log.Debug("just debug")
 		session.SetSession(sessKeyUserId, uid, sessId)
+		log.Debug("just debug")
 		return token
 	}
 	panic(errNotLoggedIn)
