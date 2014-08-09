@@ -259,6 +259,9 @@ func quit(tid, uid int, nickname string, is1p, isTournament bool) {
 			table.GameoverChan <- types.Gameover2pQuit
 		}
 	}
+	if table.HasNoPlayer() {
+		tables.DelTable(tid)
+	}
 }
 
 // send to all

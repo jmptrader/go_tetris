@@ -429,6 +429,14 @@ func (t *Table) Quit(uid int) {
 	}
 }
 
+// check if the table does not have player
+// for delete
+func (t *Table) HasNoPlayer() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t._1p == nil && t._2p == nil
+}
+
 // get bet
 func (t *Table) GetBet() int {
 	t.mu.Lock()

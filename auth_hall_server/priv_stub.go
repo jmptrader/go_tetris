@@ -182,7 +182,11 @@ func (privStub) Quit(tid, uid int, isTournament bool) {
 	if isTournament {
 		tournamentHall.GetTableById(tid).Quit(uid)
 	} else {
-		normalHall.GetTableById(tid).Quit(uid)
+		t := normalHall.GetTableById(tid)
+		t.Quit(uid)
+		if t.HasNoPlayer() {
+			normalHall.DelTable(tid)
+		}
 	}
 	users.SetFree(uid)
 }
