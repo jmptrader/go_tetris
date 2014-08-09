@@ -116,7 +116,7 @@ func (g *Game) init() {
 func (g *Game) KoOpponent() {
 	g.ko++
 	g.send(DescKo, g.ko)
-	g.send(DescAudio, audioKO)
+	g.send(DescAudio, audioKO())
 }
 
 // params:
