@@ -144,10 +144,12 @@ func serveGame(tid int) {
 
 		// table timer
 		case remain := <-table.RemainedSecondsChan:
+			log.Debug("remain time in seconds: %d", remain)
 			sendAll(descTimer, remain, table.GetAllConns()...)
 
 		// game over
 		case gameover := <-table.GameoverChan:
+			log.Debug("table game over chan: %v", gameover)
 			switch gameover {
 			case types.GameoverNormal:
 				// normal game over
@@ -163,6 +165,7 @@ func serveGame(tid int) {
 
 		// 1p
 		case msg := <-table.GetGame1p().MsgChan:
+			log.Debug("1p msg: %v", msg)
 			switch msg.Description {
 			// ko, audio only send to the player himself
 			case tetris.DescAudio, tetris.DescKo:
@@ -177,10 +180,12 @@ func serveGame(tid int) {
 			}
 
 		case beingKo := <-table.GetGame1p().BeingKOChan:
+			log.Debug("1p being ko: %v", beingKo)
 			if beingKo {
 				table.GetGame2p().KoOpponent()
 				sendAll(desc1p, tetris.NewMessage(tetris.DescBeingKo, table.GetGame2p().GetKo()), table.Get1pConn())
 				sendAll(desc1p, tetris.NewMessage(tetris.DescBeingKo, table.GetGame2p().GetKo()), table.GetObConns()...)
+				log.Debug("number of 2p ko: %d", table.GetGame2p().GetKo())
 				if table.GetGame2p().GetKo() >= 5 {
 					table.GetGame1p().GameoverChan <- true
 				}
@@ -188,10 +193,12 @@ func serveGame(tid int) {
 
 		// attack 2p
 		case attack := <-table.GetGame1p().AttackChan:
+			log.Debug("attacking 2p %d lines", attack)
 			table.GetGame2p().BeingAttacked(attack)
 
 		// 1p game over, 2p win
 		case gameover := <-table.GetGame1p().GameoverChan:
+			log.Debug("1p game over: %v", gameover)
 			if gameover {
 				gameOver(tid, false)
 				return
@@ -199,6 +206,7 @@ func serveGame(tid int) {
 
 		// 2p
 		case msg := <-table.GetGame2p().MsgChan:
+			log.Debug("2p msg: %v", msg)
 			// ko, audio only send to the player himself
 			switch msg.Description {
 			case tetris.DescAudio, tetris.DescKo:
@@ -210,21 +218,26 @@ func serveGame(tid int) {
 				sendAll(desc2p, msg, table.GetAllConns()...)
 			}
 
+		// attack 1p
 		case attack := <-table.GetGame2p().AttackChan:
-			table.GetGame2p().BeingAttacked(attack)
+			log.Debug("attacking 1p %d lines", attack)
+			table.GetGame1p().BeingAttacked(attack)
 
 		// 2p game over, 1p win
 		case gameover := <-table.GetGame2p().GameoverChan:
+			log.Debug("2p game over: %v", gameover)
 			if gameover {
 				gameOver(tid, true)
 				return
 			}
 
 		case beingKo := <-table.GetGame2p().BeingKOChan:
+			log.Debug("2p being ko: %v", beingKo)
 			if beingKo {
 				table.GetGame1p().KoOpponent()
 				sendAll(desc2p, tetris.NewMessage(tetris.DescBeingKo, table.GetGame1p().GetKo()), table.Get2pConn())
 				sendAll(desc2p, tetris.NewMessage(tetris.DescBeingKo, table.GetGame1p().GetKo()), table.GetObConns()...)
+				log.Debug("number of 1p ko: %d", table.GetGame1p().GetKo())
 				if table.GetGame1p().GetKo() >= 5 {
 					table.GetGame2p().GameoverChan <- true
 				}
