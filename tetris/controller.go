@@ -98,7 +98,7 @@ func NewGame(height, width, numOfNextPieces, interval int) (*Game, error) {
 		holded:       false,
 		nextPieces:   np,
 		MsgChan:      make(chan message, buffer),
-		GameoverChan: make(chan bool),
+		GameoverChan: make(chan bool, 1),
 		AttackChan:   make(chan int, buffer),
 		BeingKOChan:  make(chan bool, 5),
 	}

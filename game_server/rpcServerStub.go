@@ -187,6 +187,7 @@ func serveGame(tid int) {
 				sendAll(desc1p, tetris.NewMessage(tetris.DescBeingKo, table.GetGame2p().GetKo()), table.GetObConns()...)
 				log.Debug("number of 2p ko: %d", table.GetGame2p().GetKo())
 				if table.GetGame2p().GetKo() >= 5 {
+					log.Debug("send true to 1p gameover chan")
 					table.GetGame1p().GameoverChan <- true
 				}
 			}
@@ -239,6 +240,7 @@ func serveGame(tid int) {
 				sendAll(desc2p, tetris.NewMessage(tetris.DescBeingKo, table.GetGame1p().GetKo()), table.GetObConns()...)
 				log.Debug("number of 1p ko: %d", table.GetGame1p().GetKo())
 				if table.GetGame1p().GetKo() >= 5 {
+					log.Debug("send true to 2p gameover chan")
 					table.GetGame2p().GameoverChan <- true
 				}
 			}
