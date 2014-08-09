@@ -233,6 +233,7 @@ func serveGame(tid int) {
 // stop the game
 // inform the auth server that the game is over
 func gameOver(tid int, is1pWin ...bool) {
+	log.Debug("table %d is game over, setting game result", tid)
 	table := tables.GetTableById(tid)
 	table.StopGame()
 	var is1pWinner = false

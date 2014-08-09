@@ -76,6 +76,8 @@ func (privStub) ObTournament(tid, uid int) {
 // set normal game result
 func (privStub) SetNormalGameResult(tid, winner, loser int, ctx interface{}) {
 	t := normalHall.GetTableById(tid)
+	t.Stop()
+
 	// update winner info
 	func() {
 		w := getUserById(winner)

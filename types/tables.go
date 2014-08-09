@@ -294,6 +294,7 @@ func (t *Table) StartGame() {
 	t.g1p.Start()
 	t.g2p.Start()
 	t.startTime = time.Now().Unix()
+	t.TStat = statInGame
 }
 
 // stop the game, only used on game server
