@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -160,11 +161,11 @@ func (ss *sessionStore) GetSession(key string, sessId string) interface{} {
 func (ss *sessionStore) String() string {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
-	str := ""
+	str := "\n"
 	for sessId, sess := range ss.sess {
 		str += sessId + " --> \n"
 		for name, val := range sess.vals {
-			str += fmt.Sprintf("\t%v -> %+v\n", name, val)
+			str += fmt.Sprintf("\t%v -> %v type is %s\n", name, val, reflect.TypeOf(val).Kind().String())
 		}
 	}
 	return str
