@@ -278,6 +278,9 @@ func sendAll(desc string, val interface{}, conns ...*net.TCPConn) {
 // inform the client side to refresh the table information
 func refreshTable(tid int, isTournament bool) {
 	table := tables.GetTableById(tid)
+	if table == nil {
+		return
+	}
 	if isTournament {
 		sendAll(descRefreshTournamentTableInfo, tid, table.GetAllConns()...)
 	} else {
