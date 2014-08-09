@@ -183,10 +183,11 @@ func serveGame(tid int) {
 			log.Debug("1p being ko: %v", beingKo)
 			if beingKo {
 				table.GetGame2p().KoOpponent()
-				sendAll(desc1p, tetris.NewMessage(tetris.DescBeingKo, table.GetGame2p().GetKo()), table.Get1pConn())
-				sendAll(desc1p, tetris.NewMessage(tetris.DescBeingKo, table.GetGame2p().GetKo()), table.GetObConns()...)
-				log.Debug("number of 2p ko: %d", table.GetGame2p().GetKo())
-				if table.GetGame2p().GetKo() >= 5 {
+				ko := table.GetGame2p().GetKo()
+				sendAll(desc1p, tetris.NewMessage(tetris.DescBeingKo, ko), table.Get1pConn())
+				sendAll(desc1p, tetris.NewMessage(tetris.DescBeingKo, ko), table.GetObConns()...)
+				log.Debug("number of 2p ko: %d", ko)
+				if ko >= 5 {
 					log.Debug("send true to 1p gameover chan")
 					table.GetGame1p().GameoverChan <- true
 				}
@@ -236,10 +237,11 @@ func serveGame(tid int) {
 			log.Debug("2p being ko: %v", beingKo)
 			if beingKo {
 				table.GetGame1p().KoOpponent()
-				sendAll(desc2p, tetris.NewMessage(tetris.DescBeingKo, table.GetGame1p().GetKo()), table.Get2pConn())
-				sendAll(desc2p, tetris.NewMessage(tetris.DescBeingKo, table.GetGame1p().GetKo()), table.GetObConns()...)
-				log.Debug("number of 1p ko: %d", table.GetGame1p().GetKo())
-				if table.GetGame1p().GetKo() >= 5 {
+				ko := table.GetGame1p().GetKo()
+				sendAll(desc2p, tetris.NewMessage(tetris.DescBeingKo, ko), table.Get2pConn())
+				sendAll(desc2p, tetris.NewMessage(tetris.DescBeingKo, ko), table.GetObConns()...)
+				log.Debug("number of 1p ko: %d", ko)
+				if ko >= 5 {
 					log.Debug("send true to 2p gameover chan")
 					table.GetGame2p().GameoverChan <- true
 				}
