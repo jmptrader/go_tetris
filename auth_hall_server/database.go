@@ -2,13 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gogames/go_tetris/types"
 	"github.com/gogames/go_tetris/utils"
+	"github.com/hprose/hprose-go/hprose"
 )
 
 const (
@@ -200,7 +200,7 @@ func storeSession(sesses map[string]map[string]interface{}) {
 	}()
 	if err = func() error {
 		for sessId, sess := range sesses {
-			data, err := json.Marshal(sess)
+			data, err := hprose.Marshal(sess)
 			if err != nil {
 				return err
 			}
@@ -272,7 +272,7 @@ func querySessions() map[string]map[string]interface{} {
 			return nil
 		}
 		var data = make(map[string]interface{})
-		if err := json.Unmarshal(sess, &data); err != nil {
+		if err := hprose.Unmarshal(sess, &data); err != nil {
 			log.Debug("can not unmarshal session: %v", err)
 			return nil
 		}
