@@ -8,8 +8,9 @@ import (
 )
 
 type ts struct {
-	NextTournaments  func() ([]string, error)
-	CreateTournament func(awardGold, awardSilver int, sponsor string) error
+	GetAll func() ([]string, error)
+	Add    func(awardGold, awardSilver int, sponsor string) error
+	Delete func() error
 }
 
 type filter struct{}

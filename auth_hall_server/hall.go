@@ -12,6 +12,7 @@ var tournamentHall *types.TournamentHall
 
 func initHall() {
 	go releaseExpires()
+	go createTournamentForever()
 }
 
 func releaseExpires() {
@@ -33,5 +34,16 @@ func releaseExpires() {
 			normalHall.ReleaseExpireTable(tid)
 		}
 		time.Sleep(5 * time.Second)
+	}
+}
+
+func createTournamentForever() {
+	defer utils.RecoverFromPanic("create tournament hall panic: ", log.Critical, createTournamentForever)
+	for {
+		time.Sleep(5 * time.Second)
+		if tournamentHall == nil || tournamentHall.TournamentEnded() {
+			n := nextTournaments.FlashGet()
+			tournamentHall = types.NewTournamentHall(n.numCandidate, n.awardGold, n.awardSilver, clients.BestServer()+":"+gameServerSocketPort, n.sponsor)
+		}
 	}
 }
