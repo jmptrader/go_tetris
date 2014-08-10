@@ -9,7 +9,7 @@ import (
 
 type ts struct {
 	GetAll func() ([]string, error)
-	Add    func(awardGold, awardSilver int, sponsor string) error
+	Add    func(numCandidate, awardGold, awardSilver int, sponsor string) error
 	Delete func() error
 }
 
