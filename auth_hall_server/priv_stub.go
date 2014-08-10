@@ -120,7 +120,7 @@ func (privStub) SetTournamentResult(tid, winner, loser int) int {
 	func() {
 		upts := make([]types.UpdateInterface, 0)
 		upts = append(upts, types.NewUpdateInt(types.UF_Win, w.Win+1))
-		if w.Win > (w.Level * w.Level) {
+		if (w.Win + 1) > (w.Level * w.Level) {
 			upts = append(upts, types.NewUpdateInt(types.UF_Level, w.Level+1))
 		}
 		if err := w.Update(upts...); err != nil {
@@ -146,7 +146,7 @@ func (privStub) SetTournamentResult(tid, winner, loser int) int {
 		panic(err)
 	}
 
-	// winner continue to player, update busy timestamp
+	// winner continue to play, update busy timestamp
 	users.SetBusy(winner)
 
 	// loser and observers quit, set free
@@ -218,6 +218,7 @@ func isTournament(tid int) bool {
 	return tid >= 1e5
 }
 
+// check if the table should start
 func tableChecker(t *types.Table, ctx interface{}) {
 	if !t.ShouldStart() {
 		return
