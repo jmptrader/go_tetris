@@ -9,10 +9,11 @@ import (
 )
 
 var (
-	httpPubServer         = hprose.NewHttpService()
-	errCreateSessionFirst = "请先创建session"
-	errClosingServer      = "we are closing the server, not accept request at the moment"
-	pubServerEnable       = true
+	pubServerFrequencyLimit = utils.NewFrequency(120, 5)
+	httpPubServer           = hprose.NewHttpService()
+	errCreateSessionFirst   = "请先创建session"
+	errClosingServer        = "we are closing the server, not accept request at the moment"
+	pubServerEnable         = true
 )
 
 type (
@@ -21,10 +22,17 @@ type (
 )
 
 func (pubSe) OnBeforeInvoke(fName string, params []reflect.Value, isSimple bool, ctx interface{}) {
-	log.Info(utils.HproseLog(fName, params, ctx))
 	if !pubServerEnable {
 		panic(errClosingServer)
 	}
+
+	if !*debug {
+		if err := pubServerFrequencyLimit.Incr(utils.GetIp(ctx)); err != nil {
+			panic(err)
+		}
+	}
+
+	log.Info(utils.HproseLog(fName, params, ctx))
 
 	if l := len(params); l > 0 {
 		if !notNeedSessFunc[fName] && !session.IsSessIdExist(params[l-1].String()) {

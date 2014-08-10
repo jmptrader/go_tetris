@@ -29,9 +29,10 @@ type (
 		awardGold, awardSilver int
 		sponsor                string
 	}
-	nts              struct{ *list.List }
-	tournamentStub   struct{}
-	tournamentFilter struct{}
+	nts                   struct{ *list.List }
+	tournamentStub        struct{}
+	tournamentFilter      struct{}
+	tournamentServerEvent struct{}
 )
 
 func newNts() *nts { return &nts{List: list.New()} }
