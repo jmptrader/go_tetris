@@ -70,13 +70,14 @@ type TournamentHall struct {
 	goldGetter, silverGetter       string
 	round                          int
 	stat                           int
+	sponsor                        string
 	tBase                          int
 	host                           string
 	idleTables                     map[int]int // someone apply and then quit, tables would be idle
 	mu                             sync.RWMutex
 }
 
-func NewTournamentHall(numCandidate, awardGold, awardSilver int, host string) *TournamentHall {
+func NewTournamentHall(numCandidate, awardGold, awardSilver int, host, sponsor string) *TournamentHall {
 	return &TournamentHall{
 		Tables:       NewTables(),
 		winners:      make(map[int][]string),
@@ -87,6 +88,7 @@ func NewTournamentHall(numCandidate, awardGold, awardSilver int, host string) *T
 		round:        0,
 		tBase:        0,
 		stat:         TournamentStatWaiting,
+		sponsor:      sponsor,
 		host:         host,
 		idleTables:   make(map[int]int),
 	}
@@ -127,6 +129,7 @@ func (th *TournamentHall) Wrap() map[string]interface{} {
 		"awardSilver":      fmt.Sprintf("%d mBTC", th.awardSilver),
 		"status":           stat,
 		"host":             th.host,
+		"sponsor":          th.sponsor,
 		"tables":           th.Tables.Wrap(),
 	}
 }
@@ -285,6 +288,13 @@ func (th *TournamentHall) SetStatEnd() {
 	th.stat = TournamentStatEnd
 }
 
+// check if the tournament is ended
+func (th *TournamentHall) TournamentEnded() bool {
+	th.mu.RLock()
+	defer th.mu.RUnlock()
+	return th.stat == TournamentStatEnd
+}
+
 func (th *TournamentHall) SetWinnerLoser(tableId, uidWin int) {
 	th.mu.Lock()
 	defer th.mu.Unlock()
@@ -329,6 +339,7 @@ func (th *TournamentHall) SetSilver(silver string) {
 	th.silverGetter = silver
 }
 
+// TODO: these two functions should be modified
 func (th *TournamentHall) ShouldEnd() bool {
 	th.mu.Lock()
 	defer th.mu.Unlock()

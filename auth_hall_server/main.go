@@ -9,6 +9,7 @@ func init() {
 	initSession()
 	initPubServer()
 	initPrivServer()
+	initTournamentServer()
 	initUsers()
 	initBitcoin()
 	initQueue()

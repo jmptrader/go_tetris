@@ -14,12 +14,12 @@ var (
 	gameServerRpcPort, gameServerSocketPort             string
 	dsn                                                 string
 	logPath                                             string
-	privRpcPort, pubRpcPort                             string
+	privRpcPort, pubRpcPort, tournamentPort             string
 	emailId, emailUser, emailPass, emailHost, emailFrom string
 	cookieEncryptKey, tokenEncryptKey, scryptSalt       string
 	emailSMTPPort                                       int
 	cookieDomain, crossDomainFile                       string
-	privKey                                             []byte
+	privKey, tournamentKey                              []byte
 )
 
 func initConf() {
@@ -43,7 +43,9 @@ func initConf() {
 	logPath = conf.String("log")
 	privRpcPort = conf.String("privServerRpcPort")
 	pubRpcPort = conf.String("publicServerRpcPort")
+	tournamentPort = conf.String("tournamentPort")
 	privKeyString := conf.String("privKey")
+	tournamentKeyString := conf.String("tournamentKey")
 	emailId = conf.String("emailIdentity")
 	emailUser = conf.String("emailUsername")
 	emailPass = conf.String("emailPassword")
@@ -59,9 +61,9 @@ func initConf() {
 		panic("can not parse email smtp port: " + err.Error())
 	}
 
-	utils.CheckEmptyConf(btcUser, btcPass, btcServer, gameServerRpcPort, gameServerSocketPort,
+	utils.CheckEmptyConf(btcUser, btcPass, btcServer, gameServerRpcPort, gameServerSocketPort, tournamentPort,
 		dbUser, dbPass, dbProtocol, dbSockAddress, dbName,
-		logPath, privRpcPort, pubRpcPort, privKeyString,
+		logPath, privRpcPort, pubRpcPort, privKeyString, tournamentKeyString,
 		emailId, emailFrom, emailHost, emailPass, emailUser, emailSMTPPort,
 		cookieEncryptKey, tokenEncryptKey, scryptSalt, crossDomainFile)
 
@@ -76,4 +78,5 @@ func initConf() {
 		utils.SetDomain(cookieDomain)
 	}
 	privKey = []byte(privKeyString)
+	tournamentKey = []byte(tournamentKeyString)
 }
