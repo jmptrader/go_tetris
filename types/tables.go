@@ -206,6 +206,9 @@ func (ts *Tables) Wrap(numOfTableInPage, pageNum int) []map[string]interface{} {
 	case l <= end:
 		end = l
 	}
+	if start < 0 {
+		start = 0
+	}
 	for _, index := range tableIds[start : end+1] {
 		res = append(res, ts.Tables[index].WrapTable())
 	}
