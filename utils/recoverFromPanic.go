@@ -20,7 +20,7 @@ func RecoverFromPanic(format string, log func(string, ...interface{}), f func())
 		if f != nil {
 			// Noted:
 			// should run the function in a new goroutine
-			// memory leak otherwise
+			// stack overflows otherwise
 			go f()
 		}
 	}

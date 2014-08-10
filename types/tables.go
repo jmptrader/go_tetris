@@ -37,6 +37,16 @@ func (ts *Tables) init() *Tables {
 	return ts
 }
 
+func (ts *Tables) String() string {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
+	str := "Currently we have the following tables:\n"
+	for tid, t := range ts.Tables {
+		str += fmt.Sprintf("table id: %d -> status: %s\n", tid, t.TStat)
+	}
+	return str
+}
+
 func findExpires(ts *Tables) {
 	for {
 		func() {
