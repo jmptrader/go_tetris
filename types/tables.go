@@ -182,6 +182,11 @@ const defaultTableInPage = 9
 func (ts *Tables) Wrap(numOfTableInPage, pageNum int) []map[string]interface{} {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
+	tableIds := ts.sortedTableId.GetAll()
+	l := len(tableIds)
+	if l == 0 {
+		return nil
+	}
 	if numOfTableInPage <= 0 {
 		numOfTableInPage = defaultTableInPage
 	}
@@ -189,9 +194,8 @@ func (ts *Tables) Wrap(numOfTableInPage, pageNum int) []map[string]interface{} {
 		pageNum = 1
 	}
 	res := make([]map[string]interface{}, 0)
-	tableIds := ts.sortedTableId.GetAll()
 	start, end := (pageNum-1)*numOfTableInPage, pageNum*numOfTableInPage-1
-	switch l := len(tableIds) - 1; {
+	switch l = l - 1; {
 	case l <= start:
 		end = l
 		start = 0
