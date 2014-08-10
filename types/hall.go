@@ -22,10 +22,10 @@ func NewNormalHall() *NormalHall {
 }
 
 // for hprose
-func (h NormalHall) Wrap() []map[string]interface{} {
+func (h NormalHall) Wrap(numOfTableInPage, pageNum int) []map[string]interface{} {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	return h.Tables.Wrap()
+	return h.Tables.Wrap(numOfTableInPage, pageNum)
 }
 
 func (h NormalHall) MarshalJSON() ([]byte, error) {
@@ -130,7 +130,7 @@ func (th *TournamentHall) Wrap() map[string]interface{} {
 		"status":           stat,
 		"host":             th.host,
 		"sponsor":          th.sponsor,
-		"tables":           th.Tables.Wrap(),
+		"tables":           th.Tables.Wrap(len(th.Tables.Tables), 1),
 	}
 }
 

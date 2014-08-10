@@ -263,13 +263,13 @@ func (pubStub) UpdateUserAvatar(avatar []byte, sessId string) {
 }
 
 // get normal hall
-func (pubStub) GetNormalHall(sessId string) []map[string]interface{} {
+func (pubStub) GetNormalHall(numTableInPage, pageNum int, sessId string) []map[string]interface{} {
 	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
 			panic(fmt.Errorf(errUserNotExist, uid))
 		}
-		return normalHall.Wrap()
+		return normalHall.Wrap(numTableInPage, pageNum)
 	}
 	panic(errNotLoggedIn)
 }

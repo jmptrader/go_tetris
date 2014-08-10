@@ -1,9 +1,11 @@
 package types
 
 import (
+	"container/list"
 	"encoding/json"
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -18,16 +20,114 @@ var (
 	ErrRoomFull = fmt.Errorf("桌子已满, 无法加入游戏.")
 )
 
-type Tables struct {
-	Tables  map[int]*Table
+type sortedList struct {
+	l       *list.List
 	mu      sync.RWMutex
-	expires map[int]*Table
+	tableId []int
+}
+
+func newSortList() *sortedList {
+	return &sortedList{
+		l:       list.New(),
+		tableId: make([]int, 0),
+	}
+}
+
+func (sl *sortedList) GetAll() []int {
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
+	return sl.tableId
+}
+
+func (sl *sortedList) Get(index int) int {
+	if index < 0 {
+		return -1
+	}
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
+	for e := sl.l.Front(); e != nil; e = e.Next() {
+		if index == 0 {
+			return e.Value.(int)
+		}
+		index--
+	}
+	return -1
+}
+
+func (sl *sortedList) Set(index, val int) {
+	if index < 0 {
+		return
+	}
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+	for e := sl.l.Front(); e != nil; e = e.Next() {
+		if index == 0 {
+			e.Value = val
+		}
+		index--
+	}
+}
+
+func (sl *sortedList) Len() int {
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
+	return sl.l.Len()
+}
+
+func (sl *sortedList) Less(i, j int) bool { return sl.Get(i) < sl.Get(j) }
+
+func (sl *sortedList) Swap(i, j int) {
+	iVal, jVal := sl.Get(i), sl.Get(j)
+	sl.Set(i, jVal)
+	sl.Set(j, iVal)
+}
+
+// add new table id
+func (sl *sortedList) Add(i int) {
+	defer func() {
+		sl.Sort()
+	}()
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+	sl.l.PushFront(i)
+}
+
+func (sl *sortedList) Delete(val int) {
+	defer func() {
+		sl.Sort()
+	}()
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+	for e := sl.l.Front(); e != nil; e = e.Next() {
+		if e.Value.(int) == val {
+			sl.l.Remove(e)
+			return
+		}
+	}
+}
+
+func (sl *sortedList) Sort() {
+	sort.Sort(sl)
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+	sl.tableId = make([]int, 0)
+	for e := sl.l.Front(); e != nil; e = e.Next() {
+		sl.tableId = append(sl.tableId, e.Value.(int))
+	}
+}
+
+type Tables struct {
+	Tables        map[int]*Table
+	sortedTableId *sortedList
+	mu            sync.RWMutex
+	expires       map[int]*Table
 }
 
 func NewTables() *Tables {
 	ts := &Tables{
-		Tables:  make(map[int]*Table),
-		expires: make(map[int]*Table),
+		sortedTableId: newSortList(),
+		Tables:        make(map[int]*Table),
+		expires:       make(map[int]*Table),
 	}
 	return ts.init()
 }
@@ -73,15 +173,37 @@ func (ts *Tables) ReleaseExpireTable(tid int) {
 	defer ts.mu.Unlock()
 	delete(ts.Tables, tid)
 	delete(ts.expires, tid)
+	ts.sortedTableId.Delete(tid)
 }
 
+const defaultTableInPage = 9
+
 // for hprose
-func (ts Tables) Wrap() []map[string]interface{} {
+func (ts *Tables) Wrap(numOfTableInPage, pageNum int) []map[string]interface{} {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
+	if numOfTableInPage <= 0 {
+		numOfTableInPage = defaultTableInPage
+	}
+	if pageNum <= 0 {
+		pageNum = 1
+	}
 	res := make([]map[string]interface{}, 0)
-	for _, t := range ts.Tables {
-		res = append(res, t.WrapTable())
+	tableIds := ts.sortedTableId.GetAll()
+	start, end := (pageNum-1)*numOfTableInPage, pageNum*numOfTableInPage-1
+	switch l := len(tableIds) - 1; {
+	case l <= start:
+		end = l
+		start = 0
+		for start < end {
+			start += numOfTableInPage
+		}
+		start -= numOfTableInPage
+	case l <= end:
+		end = l
+	}
+	for _, index := range tableIds[start : end+1] {
+		res = append(res, ts.Tables[index].WrapTable())
 	}
 	return res
 }
@@ -128,6 +250,7 @@ func (ts *Tables) DelTable(id int) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 	delete(ts.Tables, id)
+	ts.sortedTableId.Delete(id)
 }
 
 // create a new Table
@@ -138,6 +261,7 @@ func (ts *Tables) NewTable(id int, title, host string, bet int) error {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 	ts.Tables[id] = newTable(id, title, host, bet)
+	ts.sortedTableId.Add(id)
 	return nil
 }
 
