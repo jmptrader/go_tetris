@@ -356,6 +356,7 @@ func (g *Game) calculate() (lineSent int) {
 	if g.mainZone.isClear() {
 		lineSent += 10
 		g.send(DescClear, true)
+		return
 	}
 
 	// not combo, reset combo, return
