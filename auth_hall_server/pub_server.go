@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	pubServerFrequencyLimit = utils.NewFrequency(120, 5)
+	pubServerFrequencyLimit = utils.NewFrequency(120, 5) // request to rpc server can not exceeds 120 times per minute
 	httpPubServer           = hprose.NewHttpService()
 	errCreateSessionFirst   = "请先创建session"
 	errClosingServer        = "we are closing the server, not accept request at the moment"
