@@ -97,7 +97,7 @@ func login() {
 		return
 	}
 	if err := s.Login(nickname, password, sessId); err != nil {
-		fmt.Printf("can not login for nickname %v and password %v\n", nickname, password)
+		fmt.Printf("can not login for nickname %v and password %v: %v\n", nickname, password, err)
 		return
 	}
 	fmt.Println("successfully login...")
