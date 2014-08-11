@@ -158,7 +158,7 @@ func findExpires(ts *Tables) {
 				}
 			}
 		}()
-		time.Sleep(30 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
