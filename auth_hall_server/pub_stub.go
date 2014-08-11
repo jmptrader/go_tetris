@@ -242,6 +242,7 @@ func (pubStub) UpdateUserPassword(currPass, newPass string, sessId string) {
 		}
 		pushFunc(func() { insertOrUpdateUser(u) })
 		session.SetSession(sessKeyUserId, uid, sessId)
+		return
 	}
 	panic(errNotLoggedIn)
 }
@@ -258,6 +259,7 @@ func (pubStub) UpdateUserAvatar(avatar []byte, sessId string) {
 		}
 		pushFunc(func() { insertOrUpdateUser(u) })
 		session.SetSession(sessKeyUserId, uid, sessId)
+		return
 	}
 	panic(errNotLoggedIn)
 }

@@ -43,11 +43,13 @@ func option() string {
 
 type fm struct{}
 
-func (fm) Register()      { register() }
-func (fm) Login()         { login() }
-func (fm) Logout()        { logout() }
-func (fm) GetUserInfo()   { getUserInfo() }
-func (fm) Create()        { create() }
-func (fm) CreateSession() { createSession() }
-func (fm) GetNormalHall() { getNormal() }
-func (fm) Join()          { join() }
+func (fm) Register()           { register() }
+func (fm) Login()              { login() }
+func (fm) Logout()             { logout() }
+func (fm) GetUserInfo()        { getUserInfo() }
+func (fm) Create()             { create() }
+func (fm) CreateSession()      { createSession() }
+func (fm) GetNormalHall()      { getNormal() }
+func (fm) Join()               { join() }
+func (fm) UpdateUserAvatar()   { updateUserAvatar() }
+func (fm) UpdateUserPassword() { updateUserPassword() }

@@ -22,7 +22,7 @@ type stub struct {
 	Login              func(string, string, string) error
 	Logout             func(string) error
 	GetUserInfo        func(string) (types.User, error)
-	UpdateUserPassword func(string, string) error
+	UpdateUserPassword func(string, string, string) error
 	UpdateUserAvatar   func([]byte, string) error
 	Withdraw           func(int, string) (string, error)
 	BuyEnergy          func(int, string) error
@@ -118,6 +118,33 @@ func getUserInfo() {
 		return
 	}
 	fmt.Printf("successfully get user info:\n%v\n", u)
+}
+
+func updateUserAvatar() {
+	if err := s.UpdateUserAvatar([]byte("hello"), sessId); err != nil {
+		fmt.Println("get error when update avatar:", err)
+		return
+	}
+	fmt.Println("update successful...")
+}
+
+func updateUserPassword() {
+	var currP, newP string
+	fmt.Println("input current password")
+	if _, err := fmt.Scanln(&currP); err != nil {
+		fmt.Println("can not scan current password:", err)
+		return
+	}
+	fmt.Println("input new password")
+	if _, err := fmt.Scanln(&newP); err != nil {
+		fmt.Println("can not scan new password:", err)
+		return
+	}
+	if err := s.UpdateUserPassword(currP, newP, sessId); err != nil {
+		fmt.Println("can not update user password:", err)
+		return
+	}
+	fmt.Println("update user password successfully")
 }
 
 func create() {
