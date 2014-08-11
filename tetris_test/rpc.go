@@ -15,6 +15,15 @@ var (
 	gsHost = ""
 )
 
+type tournament struct {
+	NumCandidate, CurrNumCandidate int
+	AwardGold, AwardSilver         string
+	Stat                           string
+	Host                           string
+	Sponsor                        string
+	Tables                         []map[string]interface{}
+}
+
 type stub struct {
 	CreateSession      func() (string, error)
 	SendMailRegister   func(string, string) error
@@ -31,7 +40,7 @@ type stub struct {
 	Join              func(int, bool, string) (string, error)
 	AutoMatch         func(string) (string, string, error)
 	GetNormalHall     func(int, int, bool, string) ([]map[string]interface{}, error)
-	GetTournamentHall func(int, int, bool, string) (map[string]interface{}, error)
+	GetTournamentHall func(int, int, bool, string) (tournament, error)
 }
 
 func initRpcClient() {
@@ -179,6 +188,15 @@ func getNormal() {
 		gsHost = t["table_host"].(string)
 	}
 	fmt.Println("game server host change to: ", gsHost)
+}
+
+func getTournament() {
+	t, err := s.GetTournamentHall(10, 1, false, sessId)
+	if err != nil {
+		fmt.Println("can not get tournament hall:", err)
+		return
+	}
+	fmt.Printf("%+v\n", t)
 }
 
 // TODO: not finish yet

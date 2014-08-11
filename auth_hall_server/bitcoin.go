@@ -39,13 +39,16 @@ func recv() {
 					log.Error("can not deposit bitcoin, get error: %v", err)
 				}
 			}()
+			log.Debug("listblocksince %s", lastBH)
 			res, err := listSinceBlock(lastBH)
 			if err != nil {
 				return
 			}
+			log.Debug("result: %+v", res)
 			for _, v := range res.Transactions {
 				switch v.Category {
 				case "receive":
+					log.Debug("the account is %s", v.Account)
 					u := getUserByNickname(v.Account)
 					if u == nil {
 						continue

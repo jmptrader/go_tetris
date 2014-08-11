@@ -50,6 +50,7 @@ func (fm) GetUserInfo()        { getUserInfo() }
 func (fm) Create()             { create() }
 func (fm) CreateSession()      { createSession() }
 func (fm) GetNormalHall()      { getNormal() }
+func (fm) GetTournamentHall()  { getTournament() }
 func (fm) Join()               { join() }
 func (fm) UpdateUserAvatar()   { updateUserAvatar() }
 func (fm) UpdateUserPassword() { updateUserPassword() }
