@@ -30,8 +30,8 @@ type stub struct {
 	Create            func(string, int, string) (int, error)
 	Join              func(int, bool, string) (string, error)
 	AutoMatch         func(string) (string, string, error)
-	GetNormalHall     func(int, int, string) ([]map[string]interface{}, error)
-	GetTournamentHall func(string) (map[string]interface{}, error)
+	GetNormalHall     func(int, int, bool, string) ([]map[string]interface{}, error)
+	GetTournamentHall func(int, int, bool, string) (map[string]interface{}, error)
 }
 
 func initRpcClient() {
@@ -142,7 +142,7 @@ func create() {
 }
 
 func getNormal() {
-	normals, err := s.GetNormalHall(10, 1, sessId)
+	normals, err := s.GetNormalHall(10, 1, false, sessId)
 	if err != nil {
 		fmt.Println("can not get normal hall:", err)
 		return
