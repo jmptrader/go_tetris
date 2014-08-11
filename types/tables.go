@@ -494,8 +494,9 @@ func (t *Table) ShouldStart() bool {
 }
 
 const (
-	maxGameDurationInSecs = 300
-	maxIdleDurationInSecs = 3600
+	maxNoPlayerDurationInSecs = 10
+	maxGameDurationInSecs     = 300
+	maxIdleDurationInSecs     = 3600
 )
 
 var MaxDurationOfTable = maxGameDurationInSecs + maxIdleDurationInSecs
@@ -504,15 +505,19 @@ var MaxDurationOfTable = maxGameDurationInSecs + maxIdleDurationInSecs
 func (t *Table) Expire() bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	tNow := time.Now().Unix()
+	tDur := time.Now().Unix() - t.startTime
 	// if the game is start and have been played for longer than 300 seconds
 	// or if the game is not start for 3600 seconds -> 1 hour
+	// if the table has no players for 10 seconds, release it
 	// there should be some network errors occur
 	// so we have to manually release the table otherwise the users are not able to join game any more
-	if t.IsStart() {
-		return (tNow - t.startTime) > maxGameDurationInSecs
+	if t.HasNoPlayer() {
+		return tDur > maxNoPlayerDurationInSecs
 	}
-	return (tNow - t.startTime) > maxIdleDurationInSecs
+	if t.IsStart() {
+		return tDur > maxGameDurationInSecs
+	}
+	return tDur > maxIdleDurationInSecs
 }
 
 // start the game in the table
