@@ -36,6 +36,10 @@ func (stub) Start(tid int) {
 	go func() {
 		defer utils.RecoverFromPanic("game panic: ", log.Critical, nil)
 		table := tables.GetTableById(tid)
+		if table == nil {
+			log.Critical("start the game but table is nil")
+			return
+		}
 		countDown(table)
 		table.StartGame()
 		if !table.IsStart() {
@@ -60,7 +64,7 @@ func (stub) Delete(tid int) error {
 	t := tables.GetTableById(tid)
 	if t == nil {
 		err := fmt.Errorf("can not delete the table %d because the table is not exist.", tid)
-		log.Debug("%v", err)
+		log.Critical("%v", err)
 		return err
 	}
 	sendAll(descError, "桌子长时间不开始游戏, 或者由于其他原因, 桌子已经被取消.", t.GetAllConns()...)
@@ -86,6 +90,10 @@ func (stub) SetNormalGameResult(tid, winnerUid, bet int) {
 		return str
 	}
 	table := tables.GetTableById(tid)
+	if table == nil {
+		log.Critical("set normal game result but table is nil")
+		return
+	}
 	switch winnerUid {
 	case table.Get1pUid():
 		send(table.Get1pConn(), descGameWin, construct(true, bet))
@@ -119,6 +127,10 @@ func (stub) SetTournamentResult(tid, winnerUid int, isFinalRound bool) {
 		return
 	}
 	table := tables.GetTableById(tid)
+	if table == nil {
+		log.Critical("set tournament result but table is nil")
+		return
+	}
 	switch winnerUid {
 	case table.Get1pUid():
 		send(table.Get1pConn(), descGameWin, construct(true, isFinalRound))
@@ -139,6 +151,10 @@ func (stub) SetTournamentResult(tid, winnerUid int, isFinalRound bool) {
 // game server serve the game
 func serveGame(tid int) {
 	table := tables.GetTableById(tid)
+	if table == nil {
+		log.Critical("serve game but table is nil")
+		return
+	}
 	for {
 		select {
 
@@ -255,6 +271,10 @@ func serveGame(tid int) {
 func gameOver(tid int, is1pWin ...bool) {
 	log.Debug("table %d is game over, setting game result", tid)
 	table := tables.GetTableById(tid)
+	if table == nil {
+		log.Critical("game over but the table is nil")
+		return
+	}
 	table.StopGame()
 	var is1pWinner = false
 	var winner, loser int

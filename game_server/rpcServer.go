@@ -38,6 +38,7 @@ func (se) OnSendError(error, interface{}) {
 
 func initRpcServer() {
 	httpServer.AddMethods(stub{})
+	httpServer.DebugEnabled = true
 	httpServer.ServiceEvent = se{}
 	go serveHttp()
 }
