@@ -263,25 +263,25 @@ func (pubStub) UpdateUserAvatar(avatar []byte, sessId string) {
 }
 
 // get normal hall
-func (pubStub) GetNormalHall(numTableInPage, pageNum int, sessId string) []map[string]interface{} {
+func (pubStub) GetNormalHall(numTableInPage, pageNum int, filterWait bool, sessId string) []map[string]interface{} {
 	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
 			panic(fmt.Errorf(errUserNotExist, uid))
 		}
-		return normalHall.Wrap(numTableInPage, pageNum)
+		return normalHall.Wrap(numTableInPage, pageNum, filterWait)
 	}
 	panic(errNotLoggedIn)
 }
 
 // get tournament hall
-func (pubStub) GetTournamentHall(sessId string) map[string]interface{} {
+func (pubStub) GetTournamentHall(numTableInPage, pageNum int, filterWait bool, sessId string) map[string]interface{} {
 	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
 			panic(fmt.Errorf(errUserNotExist, uid))
 		}
-		return tournamentHall.Wrap()
+		return tournamentHall.Wrap(numTableInPage, pageNum, filterWait)
 	}
 	panic(errNotLoggedIn)
 }

@@ -179,10 +179,19 @@ func (ts *Tables) ReleaseExpireTable(tid int) {
 const defaultTableInPage = 9
 
 // for hprose
-func (ts *Tables) Wrap(numOfTableInPage, pageNum int) []map[string]interface{} {
+func (ts *Tables) Wrap(numOfTableInPage, pageNum int, filterWait bool) []map[string]interface{} {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
 	tableIds := ts.sortedTableId.GetAll()
+	if filterWait {
+		tmpTableIds := make([]int, 0)
+		for _, tid := range tableIds {
+			if !ts.Tables[tid].IsStart() {
+				tmpTableIds = append(tmpTableIds, tid)
+			}
+		}
+		tableIds = tmpTableIds
+	}
 	l := len(tableIds)
 	if l == 0 {
 		return nil
