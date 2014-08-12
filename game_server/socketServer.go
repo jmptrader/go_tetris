@@ -81,6 +81,11 @@ const (
 	descGameResult                 = "result"
 )
 
+var (
+	pingDuration   = 5 * time.Second
+	authenDuration = 10 * time.Second
+)
+
 func serveTcpConn(conn *net.TCPConn) {
 	defer utils.RecoverFromPanic("serve tcp connection panic: ", log.Critical, nil)
 	// keep the connection alive
@@ -88,8 +93,8 @@ func serveTcpConn(conn *net.TCPConn) {
 		log.Debug("set keep alive error: %v", err)
 	}
 	// authenticate in 10 seconds
-	if err := conn.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil {
-		log.Debug("set read deadline error: %v", err)
+	if err := conn.SetReadDeadline(time.Now().Add(authenDuration)); err != nil {
+		log.Debug("set authentication deadline error: %v", err)
 	}
 	// auth -> check the connection
 	data, err := recv(conn)
@@ -172,8 +177,6 @@ func serveTcpConn(conn *net.TCPConn) {
 	}
 	go handleConn(conn, uid, tid, nickname, isOb, tables.GetTableById(tid).Is1p(uid), isTournament)
 }
-
-var pingDuration = 5 * time.Second
 
 func handleConn(conn *net.TCPConn, uid, tid int, nickname string, isOb, is1p, isTournament bool) {
 	var handleQuit = func() {
