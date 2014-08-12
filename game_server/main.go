@@ -8,6 +8,7 @@ func init() {
 	initServerStatus()
 	initSocketServer()
 	initRpcServer()
+	initTables()
 	initGraceful()
 }
 
