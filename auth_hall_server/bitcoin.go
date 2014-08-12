@@ -46,13 +46,15 @@ func recv() {
 			for _, v := range res.Transactions {
 				switch v.Category {
 				case "receive":
-					u := getUserByNickname(v.Account)
+					// account is labeled by user's email
+					u := getUserByEmail(v.Account)
 					if u == nil {
+						log.Debug("the user's email %v does not exist", v.Account)
 						continue
 					}
 					amount := int(v.Amount * 1000)
 					// insert into database & update
-					if err = insertDeposit(v.TxID, v.Account, v.Address, amount); err != nil {
+					if err = insertDeposit(v.TxID, v.Account, v.Address, amount); err != nil && err != errDepositTxidExisted {
 						return
 					}
 					// update user cache

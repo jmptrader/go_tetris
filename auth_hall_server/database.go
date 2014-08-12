@@ -32,6 +32,7 @@ const (
 	) ENGINE=innoDB;`
 )
 
+var errDepositTxidExisted = fmt.Errorf("deposit txid exist")
 var db *sql.DB
 
 func initDatabase() {
@@ -116,7 +117,7 @@ func insertDeposit(txid, nickname, fromAddr string, amount int) error {
 	// first check if it exists
 	row := db.QueryRow("SELECT 1 FROM accounting WHERE isDeposit = 1 AND txid = ?", txid)
 	if row.Scan(new(int)) != sql.ErrNoRows {
-		return fmt.Errorf("the deposit %s is already exist", txid)
+		return errDepositTxidExisted
 	}
 	// then insert
 	tx, err := db.Begin()

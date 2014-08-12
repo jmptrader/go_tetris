@@ -172,8 +172,8 @@ func (pubStub) Register(email, password, nickname, authenCode string, sessId str
 	if getUserByNickname(nickname) != nil {
 		panic(errNicknameExist)
 	}
-	// generate new bitcoin address for the user
-	addr, err := getNewAddress(nickname)
+	// generate new bitcoin address for the user labeled by email
+	addr, err := getNewAddress(email)
 	if err != nil {
 		panic(err)
 	}
