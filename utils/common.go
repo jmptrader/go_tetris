@@ -31,6 +31,9 @@ func ReadDataOverTcp(r io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	length := int(binary.BigEndian.Uint32(buf))
+	if length > tcpBuffer-4 {
+		return nil, fmt.Errorf("length is larger than 508")
+	}
 	size := length - n + 4
 	if size > 0 {
 		_, err = io.ReadAtLeast(r, buf[n:], size)
