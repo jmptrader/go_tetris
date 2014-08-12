@@ -18,7 +18,6 @@ func recv(conn *net.TCPConn) (d requestData, err error) {
 	}
 	b, err := utils.ReadDataOverTcp(conn)
 	if err != nil {
-		log.Debug("can not read data over tcp: %v", err)
 		return
 	}
 	err = json.Unmarshal(b, &d)

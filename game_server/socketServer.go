@@ -183,13 +183,13 @@ func handleConn(conn *net.TCPConn, uid, tid int, nickname string, isOb, is1p, is
 		refreshTable(tid, isTournament)
 	}
 	defer utils.RecoverFromPanic("handle connection panic: ", log.Critical, handleQuit)
+	table := tables.GetTableById(tid)
+	if table == nil {
+		log.Debug("the table is already been deleted")
+		return
+	}
 forLoop:
 	for {
-		table := tables.GetTableById(tid)
-		if table == nil {
-			log.Debug("the table is already been deleted")
-			return
-		}
 		// receive data from client
 		data, err := recv(conn)
 		if err != nil {
