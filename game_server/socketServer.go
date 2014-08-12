@@ -62,6 +62,7 @@ const (
 	cmdOperate = "operate"
 	cmdReady   = "switchState"
 	cmdQuit    = "quit"
+	cmdPing    = "ping"
 )
 
 // response description
@@ -169,12 +170,10 @@ func serveTcpConn(conn *net.TCPConn) {
 		refreshTable(tid, false)
 		sendAll(descSysMsg, fmt.Sprintf("玩家 %s 加入游戏", nickname), tables.GetTableById(tid).GetAllConns()...)
 	}
-	// clear the deadline
-	if err := conn.SetReadDeadline(time.Time{}); err != nil {
-		log.Debug("can not clear deadline, error: %v", err)
-	}
 	go handleConn(conn, uid, tid, nickname, isOb, tables.GetTableById(tid).Is1p(uid), isTournament)
 }
+
+var pingDuration = 5 * time.Second
 
 func handleConn(conn *net.TCPConn, uid, tid int, nickname string, isOb, is1p, isTournament bool) {
 	var handleQuit = func() {
@@ -190,6 +189,9 @@ func handleConn(conn *net.TCPConn, uid, tid int, nickname string, isOb, is1p, is
 	}
 forLoop:
 	for {
+		if err := conn.SetReadDeadline(time.Now().Add(pingDuration)); err != nil {
+			log.Debug("can not set heartbeat deadline, error: %v", err)
+		}
 		// receive data from client
 		data, err := recv(conn)
 		if err != nil {
@@ -254,7 +256,11 @@ forLoop:
 				send(conn, descError, fmt.Sprintf("operation can only be %s, %s, %s, %s, %s, %s",
 					opDown, opDrop, opLeft, opRight, opHold, opRotate))
 			}
+		case cmdPing:
+			// get ping from client
+			log.Debug("get ping from %s", conn.RemoteAddr().String())
 		default:
+			log.Debug("get strange packet from client: %+v", data)
 			send(conn, descError, fmt.Sprintf("the command %s does not exist, are you hacker?", data.Cmd))
 		}
 	}
