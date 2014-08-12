@@ -82,6 +82,14 @@ const (
 
 func serveTcpConn(conn *net.TCPConn) {
 	defer utils.RecoverFromPanic("serve tcp connection panic: ", log.Critical, nil)
+	// keep the connection alive
+	if err := conn.SetKeepAlive(true); err != nil {
+		log.Debug("set keep alive error: %v", err)
+	}
+	// authenticate in 10 seconds
+	if err := conn.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		log.Debug("set read deadline error: %v", err)
+	}
 	// auth -> check the connection
 	data, err := recv(conn)
 	if err != nil {
@@ -160,6 +168,10 @@ func serveTcpConn(conn *net.TCPConn) {
 		}
 		refreshTable(tid, false)
 		sendAll(descSysMsg, fmt.Sprintf("玩家 %s 加入游戏", nickname), tables.GetTableById(tid).GetAllConns()...)
+	}
+	// clear the deadline
+	if err := conn.SetReadDeadline(time.Time{}); err != nil {
+		log.Debug("can not clear deadline, error: %v", err)
 	}
 	go handleConn(conn, uid, tid, nickname, isOb, tables.GetTableById(tid).Is1p(uid), isTournament)
 }
