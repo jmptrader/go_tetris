@@ -10,41 +10,74 @@ type block [defaultNumOfDotsInABlock]dot
 var _ json.Marshaler = block{}
 
 var blocks = []block{
+	/*
+		####
+	*/
 	block([defaultNumOfDotsInABlock]dot{
 		newDot(0, 0, newColor(1)),
 		newDot(1, 0, newColor(1)),
 		newDot(2, 0, newColor(1)),
 		newDot(3, 0, newColor(1)),
 	}),
+	/*
+		#
+		###
+	*/
 	block([defaultNumOfDotsInABlock]dot{
 		newDot(0, 0, newColor(2)),
 		newDot(0, 1, newColor(2)),
 		newDot(1, 1, newColor(2)),
 		newDot(2, 1, newColor(2)),
 	}),
+	/*
+		  #
+		###
+	*/
 	block([defaultNumOfDotsInABlock]dot{
 		newDot(2, 0, newColor(3)),
 		newDot(0, 1, newColor(3)),
 		newDot(1, 1, newColor(3)),
 		newDot(2, 1, newColor(3)),
 	}),
+	/*
+		 #
+		###
+	*/
 	block([defaultNumOfDotsInABlock]dot{
 		newDot(1, 0, newColor(4)),
 		newDot(0, 1, newColor(4)),
 		newDot(1, 1, newColor(4)),
 		newDot(2, 1, newColor(4)),
 	}),
+	/*
+		##
+		 ##
+	*/
 	block([defaultNumOfDotsInABlock]dot{
 		newDot(0, 0, newColor(5)),
 		newDot(1, 0, newColor(5)),
 		newDot(1, 1, newColor(5)),
 		newDot(2, 1, newColor(5)),
 	}),
+	/*
+		 ##
+		##
+	*/
 	block([defaultNumOfDotsInABlock]dot{
 		newDot(1, 0, newColor(6)),
 		newDot(2, 0, newColor(6)),
 		newDot(0, 1, newColor(6)),
 		newDot(1, 1, newColor(6)),
+	}),
+	/*
+		##
+		##
+	*/
+	block([defaultNumOfDotsInABlock]dot{
+		newDot(1, 0, newColor(7)),
+		newDot(1, 1, newColor(7)),
+		newDot(2, 0, newColor(7)),
+		newDot(2, 1, newColor(7)),
 	}),
 }
 
@@ -54,7 +87,7 @@ func newBlock() block {
 
 // implement json marshaler interface for rendering the reserved piece, next several pieces
 func (b block) MarshalJSON() ([]byte, error) {
-	var v [defaultNumOfDotsInABlock][defaultNumOfDotsInABlock]Color
+	var v [2][defaultNumOfDotsInABlock]Color
 	for _, d := range b {
 		v[d.y][d.x] = b.Color()
 	}
