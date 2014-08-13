@@ -561,6 +561,7 @@ func (pubStub) BuyEnergy(amountOfmBTC int, sessId string) {
 		}
 		pushFunc(func() { buyEnergy(u.Uid, amountOfmBTC) })
 		session.SetSession(sessKeyUserId, uid, sessId)
+		return
 	}
 	panic(errNotLoggedIn)
 }
