@@ -52,7 +52,6 @@ func initPrivServer() {
 	httpPrivServer.AddMethods(privStub{})
 	httpPrivServer.ServiceEvent = privSe{}
 	httpPrivServer.SetFilter(privFilter{})
-	httpPrivServer.DebugEnabled = true
 	go servePrivHttp()
 }
 

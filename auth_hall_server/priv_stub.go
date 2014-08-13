@@ -76,6 +76,10 @@ func (privStub) ObTournament(tid, uid int) {
 // set normal game result
 func (privStub) SetNormalGameResult(tid, winner, loser int, ctx interface{}) {
 	t := normalHall.GetTableById(tid)
+	if t == nil {
+		log.Debug("the normal table %d does not exist, why set its result?", tid)
+		panic("table not exist")
+	}
 	t.Stop()
 
 	// update winner info
@@ -115,6 +119,11 @@ func (privStub) SetNormalGameResult(tid, winner, loser int, ctx interface{}) {
 // set tournament game result
 func (privStub) SetTournamentResult(tid, winner, loser int) int {
 	t := tournamentHall.GetTableById(tid)
+	if t == nil {
+		log.Debug("the tournament table %d does not exist, why set its result?", tid)
+		panic("table not exist")
+	}
+
 	// update winner info
 	w := getUserById(winner)
 	func() {
