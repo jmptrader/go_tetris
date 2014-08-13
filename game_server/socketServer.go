@@ -156,7 +156,8 @@ func serveTcpConn(conn *net.TCPConn) {
 			closeConn(conn)
 			return
 		}
-		refreshTable(tid, isTournament)
+		// do not inform all people that an observer join the table
+		// refreshTable(tid, isTournament)
 		sendAll(descSysMsg, fmt.Sprintf("用户 %s 进入观战", nickname), tables.GetTableById(tid).GetAllConns()...)
 	default:
 		// normal hall
@@ -180,7 +181,7 @@ func serveTcpConn(conn *net.TCPConn) {
 
 func handleConn(conn *net.TCPConn, uid, tid int, nickname string, isOb, is1p, isTournament bool) {
 	var handleQuit = func() {
-		quit(tid, uid, nickname, is1p, isTournament)
+		quit(tid, uid, nickname, isOb, is1p, isTournament)
 		closeConn(conn)
 		refreshTable(tid, isTournament)
 	}
@@ -270,7 +271,7 @@ forLoop:
 }
 
 // quit a game
-func quit(tid, uid int, nickname string, is1p, isTournament bool) {
+func quit(tid, uid int, nickname string, isOb, is1p, isTournament bool) {
 	log.Debug("user %s quit the table %d", nickname, tid)
 	if err := authServerStub.Quit(tid, uid, isTournament); err != nil {
 		log.Warn("hprose error, can not quit user %s from table %d: %v", nickname, tid, err)
@@ -281,16 +282,26 @@ func quit(tid, uid int, nickname string, is1p, isTournament bool) {
 		return
 	}
 	table.Quit(uid)
-	if table.IsStart() {
-		if is1p {
-			table.GameoverChan <- types.Gameover1pQuit
-		} else {
-			table.GameoverChan <- types.Gameover2pQuit
+	if !isOb {
+		if table.IsStart() {
+			if is1p {
+				table.GameoverChan <- types.Gameover1pQuit
+			} else {
+				table.GameoverChan <- types.Gameover2pQuit
+			}
 		}
 	}
 	if table.HasNoPlayer() {
 		tables.DelTable(tid)
+		return
 	}
+	var msg string
+	if isOb {
+		msg = fmt.Sprintf("观战者 %s 退出房间", nickname)
+	} else {
+		msg = fmt.Sprintf("玩家 %s 退出房间", nickname)
+	}
+	sendAll(descSysMsg, msg, table.GetAllConns()...)
 }
 
 // send to all
