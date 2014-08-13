@@ -62,6 +62,8 @@ func servePolicyFileRequest(conn *net.TCPConn) {
 			log.Debug("can not send policy file: %v\n%s\n", err, socketPolicyFile)
 			return
 		}
+		log.Debug("successfully send policy file: %s", socketPolicyFile)
+		return
 	}
 	log.Debug("the string is %s", bufprf)
 }
