@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"time"
@@ -51,9 +50,9 @@ func servePolicyFileRequest(conn *net.TCPConn) {
 	defer utils.RecoverFromPanic("serve policy file request tcp connection panic: ", log.Critical, nil)
 	defer conn.Close()
 	bufprf := make([]byte, bufPFR)
-	_, err := io.ReadFull(conn, bufprf)
+	n, err := conn.Read(bufprf)
 	if err != nil {
-		log.Debug("policy file server can not read from tcp connection: %v", err)
+		log.Debug("policy file server can not read from tcp connection: %v\nthe length of n is %d\n", err, n)
 		return
 	}
 	if fmt.Sprintf("%s", bufprf) == "<policy-file-request/>" {
