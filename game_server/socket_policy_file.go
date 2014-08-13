@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gogames/go_tetris/utils"
@@ -59,7 +60,8 @@ func servePolicyFileRequest(conn *net.TCPConn) {
 		log.Debug("policy file server can not read from tcp connection: %v\nthe length of n is %d\n", err, n)
 		return
 	}
-	if fmt.Sprintf("%s", bufprf) == "<policy-file-request/>" {
+	equal := strings.TrimSpace(fmt.Sprintf("%s", bufprf)) == "<policy-file-request/>"
+	if equal {
 		_, err := conn.Write(socketPolicyFile)
 		if err != nil {
 			log.Debug("can not send policy file: %v\n%s\n", err, socketPolicyFile)
@@ -68,5 +70,5 @@ func servePolicyFileRequest(conn *net.TCPConn) {
 		log.Debug("successfully send policy file: %s", socketPolicyFile)
 		return
 	}
-	log.Debug("the string is %s", bufprf)
+	log.Debug("the string is %s, equal ? %v", bufprf, equal)
 }
