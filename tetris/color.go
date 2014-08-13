@@ -40,7 +40,7 @@ func (c Color) isBomb() bool {
 }
 
 const (
-	maxColor = 6
+	maxColor = 7
 
 	Color_nothing = 0
 	Color_stone   = -99
