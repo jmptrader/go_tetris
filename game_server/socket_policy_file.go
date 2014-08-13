@@ -13,6 +13,10 @@ import (
 )
 
 func initPolicyFileSocketServer() {
+	socketPolicyFile = []byte(fmt.Sprintf(`
+<cross-domain-policy>
+	<allow-access-from domain="*.cointetris.com" to-ports="%s" />
+</cross-domain-policy>`, gameServerSockPort))
 	tcpAddr, err := net.ResolveTCPAddr("tcp", ":843")
 	if err != nil {
 		log.Critical("can not resolve tcp address: %v", err)
@@ -41,10 +45,7 @@ func initPolicyFileSocketServer() {
 
 const bufPFR = 1 << 5
 
-var socketPolicyFile = []byte(fmt.Sprintf(`
-<cross-domain-policy>
-	<allow-access-from domain="*.cointetris.com" to-ports="%s" />
-</cross-domain-policy>`, gameServerSockPort))
+var socketPolicyFile []byte
 
 func servePolicyFileRequest(conn *net.TCPConn) {
 	defer utils.RecoverFromPanic("serve policy file request tcp connection panic: ", log.Critical, nil)
@@ -58,7 +59,7 @@ func servePolicyFileRequest(conn *net.TCPConn) {
 	if fmt.Sprintf("%s", bufprf) == "<policy-file-request/>" {
 		_, err := conn.Write(socketPolicyFile)
 		if err != nil {
-			log.Debug("can not send policy file: %v", err)
+			log.Debug("can not send policy file: %v\n%s\n", err, socketPolicyFile)
 			return
 		}
 	}
