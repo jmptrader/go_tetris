@@ -6,6 +6,7 @@ func init() {
 	initLogger()
 	initRpcClient()
 	initServerStatus()
+	initPolicyFileSocketServer()
 	initSocketServer()
 	initRpcServer()
 	initTables()

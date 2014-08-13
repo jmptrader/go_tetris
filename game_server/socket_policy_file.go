@@ -1,0 +1,67 @@
+/*
+	socket server listen on 843 for AS3 requesting for pocily file
+*/
+package main
+
+import (
+	"fmt"
+	"io"
+	"net"
+	"os"
+	"time"
+
+	"github.com/gogames/go_tetris/utils"
+)
+
+func initPolicyFileSocketServer() {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", ":843")
+	if err != nil {
+		log.Critical("can not resolve tcp address: %v", err)
+		time.Sleep(1 * time.Second)
+		os.Exit(1)
+	}
+	l, err := net.ListenTCP("tcp", tcpAddr)
+	if err != nil {
+		log.Critical("can not listen tcp: %v", err)
+		time.Sleep(1 * time.Second)
+		os.Exit(1)
+	}
+
+	log.Info("successfully initialization, as3 policy file socket server accepting connection...")
+	go func() {
+		for {
+			conn, err := l.AcceptTCP()
+			if err != nil {
+				log.Critical("do not accept tcp connection to policy file socket server: %v", err)
+				continue
+			}
+			go servePolicyFileRequest(conn)
+		}
+	}()
+}
+
+const bufPFR = 1 << 5
+
+var socketPolicyFile = []byte(fmt.Sprintf(`
+<cross-domain-policy>
+	<allow-access-from domain="*.cointetris.com" to-ports="%s" />
+</cross-domain-policy>`, gameServerSockPort))
+
+func servePolicyFileRequest(conn *net.TCPConn) {
+	defer utils.RecoverFromPanic("serve policy file request tcp connection panic: ", log.Critical, nil)
+	defer conn.Close()
+	bufprf := make([]byte, bufPFR)
+	_, err := io.ReadFull(conn, bufprf)
+	if err != nil {
+		log.Debug("policy file server can not read from tcp connection: %v", err)
+		return
+	}
+	if fmt.Sprintf("%s", bufprf) == "<policy-file-request/>" {
+		_, err := conn.Write(socketPolicyFile)
+		if err != nil {
+			log.Debug("can not send policy file: %v", err)
+			return
+		}
+	}
+	log.Debug("the string is %s", bufprf)
+}
