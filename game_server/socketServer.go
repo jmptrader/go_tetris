@@ -281,16 +281,18 @@ func quit(tid, uid int, nickname string, isOb, is1p, isTournament bool) {
 		log.Debug("why the table %d is nil but also quit?", tid)
 		return
 	}
-	table.Quit(uid)
 	if !isOb {
 		if table.IsStart() {
 			if is1p {
-				table.GameoverChan <- types.Gameover1pQuit
+				gameOver(tid, false)
+				// table.GameoverChan <- types.Gameover1pQuit
 			} else {
-				table.GameoverChan <- types.Gameover2pQuit
+				gameOver(tid, true)
+				// table.GameoverChan <- types.Gameover2pQuit
 			}
 		}
 	}
+	table.Quit(uid)
 	if table.HasNoPlayer() {
 		tables.DelTable(tid)
 		return

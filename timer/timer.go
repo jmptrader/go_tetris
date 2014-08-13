@@ -77,6 +77,12 @@ func (t *Timer) Pause() {
 	t.isPaused = true
 }
 
+func (t *Timer) IsPaused() bool {
+	t.Lock()
+	defer t.Unlock()
+	return t.isPaused
+}
+
 // break pause
 func (t *Timer) Start() {
 	t.Lock()

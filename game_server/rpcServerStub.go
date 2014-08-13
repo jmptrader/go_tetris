@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gogames/go_tetris/tetris"
 	"github.com/gogames/go_tetris/timer"
@@ -262,6 +263,10 @@ func serveGame(tid int) {
 					table.GetGame2p().GameoverChan <- true
 				}
 			}
+
+		case <-time.After(time.Second * 2):
+			log.Debug("do not receive any msg in 2 seconds: the game should be ended")
+			return
 		}
 	}
 }

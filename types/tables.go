@@ -386,6 +386,9 @@ func newTable(id int, title, host string, bet int) *Table {
 
 func (t *Table) UpdateTimer() {
 	for {
+		if t.timer.IsPaused() {
+			return
+		}
 		t.timer.Wait()
 		if b := func() bool {
 			t.mu.Lock()
