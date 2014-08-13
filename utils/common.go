@@ -6,9 +6,9 @@ import (
 	"io"
 )
 
-// tcpBuffer set to 512, always send 512 bytes to as3
+// tcpBuffer set to 1024, always send 1024 bytes to as3
 // should test later
-const tcpBuffer = 1 << 9
+const tcpBuffer = 1 << 10
 
 const errTooLargeDatagram = "length of the data pack is %v, too large"
 
