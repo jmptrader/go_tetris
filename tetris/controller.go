@@ -279,6 +279,7 @@ func (g *Game) BeingAttacked(n int) {
 func (g *Game) Start() {
 	g.timer.Start()
 	g.send(DescAudio, audioBackground())
+	g.send(DescNextPiece, g.nextPieces)
 }
 
 // pause the game
