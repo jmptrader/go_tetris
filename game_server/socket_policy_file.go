@@ -17,6 +17,7 @@ func initPolicyFileSocketServer() {
 <cross-domain-policy>
 	<allow-access-from domain="*.cointetris.com" to-ports="%s" />
 </cross-domain-policy>`, gameServerSockPort))
+	socketPolicyFile = append(socketPolicyFile, byte("\0"))
 	tcpAddr, err := net.ResolveTCPAddr("tcp", ":843")
 	if err != nil {
 		log.Critical("can not resolve tcp address: %v", err)
