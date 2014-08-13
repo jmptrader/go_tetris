@@ -80,6 +80,10 @@ func (privStub) SetNormalGameResult(tid, winner, loser int, ctx interface{}) {
 		log.Debug("the normal table %d does not exist, why set its result?", tid)
 		panic("table not exist")
 	}
+	if !t.IsStart() {
+		log.Critical("the game is not start, why game over?")
+		panic("the game is not start, why set result?")
+	}
 	t.Stop()
 
 	// update winner info
@@ -122,6 +126,10 @@ func (privStub) SetTournamentResult(tid, winner, loser int) int {
 	if t == nil {
 		log.Debug("the tournament table %d does not exist, why set its result?", tid)
 		panic("table not exist")
+	}
+	if !t.IsStart() {
+		log.Critical("the tournament is not started, why set result?")
+		panic("table is not started, why set result?")
 	}
 
 	// update winner info
@@ -217,6 +225,14 @@ func (privStub) SwitchReady(tid, uid int, ctx interface{}) {
 		panic(errTournamentDefaultReady)
 	}
 	t := normalHall.GetTableById(tid)
+	if t == nil {
+		log.Debug("the table %d is nil, why switch ready state?", tid)
+		panic("table is nil")
+	}
+	if t.IsStart() {
+		log.Debug("the table %d is start, why switch ready state", tid)
+		panic("table is started")
+	}
 	u := getUserById(uid)
 	if u == nil {
 		log.Debug("the user %d is not exist", uid)

@@ -39,7 +39,11 @@ func (stub) Start(tid int) {
 		table := tables.GetTableById(tid)
 		if table == nil {
 			log.Critical("start the game but table is nil")
-			return
+			panic("table is nil")
+		}
+		if table.IsStart() {
+			log.Critical("the table is already start, why start again?")
+			panic("table is already started, why start again?")
 		}
 		countDown(table)
 		table.StartGame()
@@ -278,6 +282,10 @@ func gameOver(tid int, is1pWin ...bool) {
 	table := tables.GetTableById(tid)
 	if table == nil {
 		log.Critical("game over but the table is nil")
+		return
+	}
+	if !table.IsStart() {
+		log.Critical("the game is actually not start, why game over?")
 		return
 	}
 	table.StopGame()
