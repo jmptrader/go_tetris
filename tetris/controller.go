@@ -27,23 +27,23 @@ var (
 	_ json.Marshaler = newNextPieces(2)
 )
 
-func newNextPieces(numOfNext int) nextPieces {
-	return nextPieces{ring.New(numOfNext)}
+func newNextPieces(numOfNext int) *nextPieces {
+	return &nextPieces{ring.New(numOfNext)}
 }
 
-func (np nextPieces) addNewPiece(p *piece) {
+func (np *nextPieces) addNewPiece(p *piece) {
 	np.Value = p
 	np.Ring = np.Next()
 }
 
-func (np nextPieces) getOne(newP *piece) *piece {
+func (np *nextPieces) getOne(newP *piece) *piece {
 	p := np.Value.(*piece)
 	np.Value = newP
-	np.Move(1)
+	np.Ring = np.Move(1)
 	return p
 }
 
-func (np nextPieces) MarshalJSON() ([]byte, error) {
+func (np *nextPieces) MarshalJSON() ([]byte, error) {
 	v := make([]interface{}, np.Len())
 	for i := 0; i < np.Len(); i++ {
 		v[i] = np.Value
@@ -65,7 +65,7 @@ type Game struct {
 	activePiece *piece
 	holdPiece   *piece
 	holded      bool
-	nextPieces  nextPieces
+	nextPieces  *nextPieces
 
 	// chan
 	MsgChan      chan message // directly send to flash client
@@ -88,7 +88,6 @@ func NewGame(height, width, numOfNextPieces, interval int) (*Game, error) {
 	for numOfNextPieces > 0 {
 		numOfNextPieces--
 		np.addNewPiece(newPiece(width/2 - 2))
-		np.Ring = np.Next()
 	}
 	g := &Game{
 		mainZone:     newMainZone(height, width),
