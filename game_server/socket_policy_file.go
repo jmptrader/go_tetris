@@ -60,7 +60,7 @@ func servePolicyFileRequest(conn *net.TCPConn) {
 		log.Debug("policy file server can not read from tcp connection: %v\nthe length of n is %d\n", err, n)
 		return
 	}
-	equal := strings.TrimSpace(fmt.Sprintf("%s", bufprf)) == "<policy-file-request/>"
+	equal := strings.TrimSpace(fmt.Sprintf("%s", bufprf[:22])) == "<policy-file-request/>"
 	if equal {
 		_, err := conn.Write(socketPolicyFile)
 		if err != nil {
