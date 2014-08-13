@@ -180,9 +180,18 @@ func (privStub) Apply(uid int) int {
 // quit a user
 func (privStub) Quit(tid, uid int, isTournament bool) {
 	if isTournament {
-		tournamentHall.GetTableById(tid).Quit(uid)
+		t := tournamentHall.GetTableById(tid)
+		if t == nil {
+			log.Debug("why the table %d is nil but also quit? because of gracefully?", tid)
+			return
+		}
+		t.Quit(uid)
 	} else {
 		t := normalHall.GetTableById(tid)
+		if t == nil {
+			log.Debug("why the table %d is nil but also quit? because of gracefully?", tid)
+			return
+		}
 		t.Quit(uid)
 		if t.HasNoPlayer() {
 			normalHall.DelTable(tid)
