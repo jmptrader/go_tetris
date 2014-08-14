@@ -34,10 +34,10 @@ func handleConn(host, token string) {
 	go heartBeat(conn)
 
 	// switch ready state
-	// if err := send(conn, cmdReady, "I am hacker~"); err != nil {
-	// 	fmt.Println("can not switch ready state: ", err)
-	// 	return
-	// }
+	if err := send(conn, cmdReady, "I am hacker~"); err != nil {
+		fmt.Println("can not switch ready state: ", err)
+		return
+	}
 
 	// send chat msg
 	if err := send(conn, cmdChat, "hello all guys, sending chat msg"); err != nil {
