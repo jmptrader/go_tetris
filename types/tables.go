@@ -535,6 +535,8 @@ func (t *Table) Start() {
 func (t *Table) Stop() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	t.ready1p = false
+	t.ready2p = false
 	t.TStat = statWaiting
 	t.startTime = time.Now().Unix()
 }
