@@ -269,7 +269,7 @@ func (zone ZoneData) canTraverse(d dot) []dot {
 // check if a block can move down
 func (zone ZoneData) canBlockMoveDown(b block) bool {
 	for _, v := range b {
-		if v.y >= zone.height()-1 || !zone[v.y+1][v.x].isNothing() || !zone[v.y+1][v.x].isTransparent(zone[v.y][v.x]) {
+		if v.y >= zone.height()-1 || !zone[v.y+1][v.x].isNothing() || !zone[v.y+1][v.x].isTransparent() {
 			return false
 		}
 	}

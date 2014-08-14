@@ -20,7 +20,8 @@ func (c Color) String() string {
 }
 
 func (c Color) toTransparent() Color {
-	return Color(-int(c))
+	return Color(-1)
+	// return Color(-int(c))
 	// return Color_transparent
 }
 
@@ -34,8 +35,9 @@ func (c Color) isNothing() bool {
 	// return c == Color_nothing
 }
 
-func (c Color) isTransparent(oc Color) bool {
-	return int(c) == -int(oc)
+func (c Color) isTransparent() bool {
+	return int(c) == -1
+	// return int(c) == -int(oc)
 	// return oc == Color_transparent
 }
 
