@@ -31,6 +31,8 @@ func handleConn(host, token string) {
 		return
 	}
 
+	go heartBeat(conn)
+
 	// switch ready state
 	// if err := send(conn, cmdReady, "I am hacker~"); err != nil {
 	// 	fmt.Println("can not switch ready state: ", err)
@@ -62,6 +64,17 @@ func handleRead(conn *net.TCPConn) {
 			return
 		}
 		fmt.Printf("receive data: %+v\n", r)
+	}
+}
+
+func heartBeat(conn *net.TCPConn) {
+	defer conn.Close()
+	for {
+		if err := send(conn, cmdPing, ""); err != nil {
+			fmt.Println("can not ping:", err)
+			return
+		}
+		time.Sleep(2 * time.Second)
 	}
 }
 
@@ -115,6 +128,7 @@ const (
 // request command
 const (
 	cmdAuth    = "auth"
+	cmdPing    = "ping"
 	cmdChat    = "chat"
 	cmdOperate = "operate"
 	cmdReady   = "switchState"
