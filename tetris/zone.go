@@ -203,7 +203,7 @@ func (m mainZone) beingKO() bool {
 func (zone ZoneData) clear() ZoneData {
 	for h, l := range zone {
 		for w, _ := range l {
-			zone[h][w] = newColor(Color_nothing)
+			zone[h][w] = Color_nothing
 		}
 	}
 	return zone
