@@ -20,32 +20,41 @@ func (c Color) String() string {
 }
 
 func (c Color) toTransparent() Color {
-	return Color_transparent
+	return Color(-int(c))
+	// return Color_transparent
 }
 
 func (c Color) isStone() bool {
-	return c == Color_stone
+	return int(c) == Color_stone
+	// return c == Color_stone
 }
 
 func (c Color) isNothing() bool {
-	return c == Color_nothing
+	return int(c) == Color_nothing
+	// return c == Color_nothing
 }
 
 func (c Color) isTransparent(oc Color) bool {
-	return oc == Color_transparent
+	return int(c) == -int(oc)
+	// return oc == Color_transparent
 }
 
 func (c Color) isBomb() bool {
-	return c == Color_bomb
+	return int(c) == Color_bomb
+	// return c == Color_bomb
 }
 
 const (
 	maxColor = 7
 
-	Color_nothing     = Color(0)
-	Color_stone       = Color(-99)
-	Color_bomb        = Color(-98)
-	Color_transparent = Color(-1)
+	Color_nothing = 0
+	Color_stone   = -99
+	Color_bomb    = -98
+
+	// Color_nothing     = Color(0)
+	// Color_stone       = Color(-99)
+	// Color_bomb        = Color(-98)
+	// Color_transparent = Color(-1)
 )
 
 // Colors
