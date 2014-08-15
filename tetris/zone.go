@@ -1,5 +1,4 @@
-// mainZone of game
-// a list of lines
+// game zone
 package tetris
 
 var (
