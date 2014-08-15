@@ -45,10 +45,12 @@ func handleConn(host, token string) {
 		return
 	}
 
-	// operate
-	if err := send(conn, cmdOperate, opLeft); err != nil {
-		fmt.Println("can not operate: ", err)
-		return
+	// operate drop
+	for {
+		if err := send(conn, cmdOperate, opDrop); err != nil {
+			fmt.Println("can not operate: ", err)
+		}
+		time.Sleep(time.Second)
 	}
 
 	// close the connection in 3 minute
