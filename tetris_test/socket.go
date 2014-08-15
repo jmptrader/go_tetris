@@ -113,6 +113,7 @@ func recv(conn *net.TCPConn) (*responseData, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("read data over tcp: %s\n", b)
 	r := new(responseData)
 	err = json.Unmarshal(b, r)
 	return r, err

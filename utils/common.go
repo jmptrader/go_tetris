@@ -15,12 +15,14 @@ const errTooLargeDatagram = "length of the data pack is %v, too large"
 func SendDataOverTcp(w io.Writer, data []byte) (err error) {
 	n := len(data)
 	if n > tcpBuffer {
+		fmt.Println(errTooLargeDatagram)
 		return fmt.Errorf(errTooLargeDatagram, n)
 	}
 	buf := make([]byte, tcpBuffer)
 	binary.BigEndian.PutUint32(buf, uint32(n))
 	copy(buf[4:], data)
 	_, err = w.Write(buf)
+	fmt.Printf("sending data over tcp: %s\n", buf[4:])
 	return err
 }
 
@@ -32,7 +34,7 @@ func ReadDataOverTcp(r io.Reader) ([]byte, error) {
 	}
 	length := int(binary.BigEndian.Uint32(buf))
 	if length > tcpBuffer-4 {
-		return nil, fmt.Errorf("length %d is larger than 508\nbytes convert to string is %s\n", length, buf)
+		return nil, fmt.Errorf("length %d is larger than 1020\nbytes convert to string is %s\n", length, buf)
 	}
 	size := length - n + 4
 	if size > 0 {
