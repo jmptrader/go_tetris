@@ -353,7 +353,8 @@ func (g *Game) send(desc string, val interface{}) {
 // score = bomb + clear_lines + combo + if_zone_clear_then_10
 func (g *Game) calculate() (lineSent int) {
 	indice, l, hitBombs := g.mainZone.calculateLinesToClear(g.activePiece.block)
-	if len(indice) != l+hitBombs {
+	total := len(indice)
+	if total != l+hitBombs {
 		fmt.Printf("length of indice %d is not equal to lines + hitbombs = %d\n", len(indice), l+hitBombs)
 	}
 
@@ -374,7 +375,7 @@ func (g *Game) calculate() (lineSent int) {
 	}
 
 	// not combo, reset combo, return
-	if (l + hitBombs) <= 1 {
+	if total <= 0 {
 		g.comboReset()
 		return
 	}
@@ -385,7 +386,10 @@ func (g *Game) calculate() (lineSent int) {
 		lineSent += c
 		g.send(DescCombo, g.combo)
 		g.send(DescAudio, audioCombo(c))
+	} else if total <= 1 {
+		return
 	}
+
 	if 0 < l && l < 4 {
 		l--
 	}
