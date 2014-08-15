@@ -167,6 +167,7 @@ func (g *Game) check(moveDown, dropDown bool) {
 	if g.mainZone.beingKO() {
 		g.BeingKOChan <- true
 		g.mainZone.removeStoneLines()
+		g.comboReset()
 	}
 
 	// render new zone
@@ -319,6 +320,8 @@ func (g *Game) comboReset() {
 
 // combo attack ?
 func (g *Game) comboAttack() (combo int) {
+	defer func() { fmt.Printf("the combo converts to %d attack\n", combo) }()
+	fmt.Printf("current combo %d\n", g.combo)
 	switch c := g.combo - 1; {
 	case c <= 0:
 		combo = 0
@@ -350,10 +353,13 @@ func (g *Game) send(desc string, val interface{}) {
 }
 
 // calculate score
-// score = bomb + clear_lines + combo + if_zone_clear_then_10
+// score = bomb + clear_lines + combo
+// if_zone_clear_then_10
 func (g *Game) calculate() (lineSent int) {
+	defer func() { fmt.Printf("sending %d lines to opponent\n", lineSent) }()
 	indice, l, hitBombs := g.mainZone.calculateLinesToClear(g.activePiece.block)
 	total := len(indice)
+	fmt.Printf("%d lines cleared and %d bombs hit\n", l, hitBombs)
 	if total != l+hitBombs {
 		fmt.Printf("length of indice %d is not equal to lines + hitbombs = %d\n", len(indice), l+hitBombs)
 	}
