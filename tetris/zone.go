@@ -2,328 +2,316 @@
 // a list of lines
 package tetris
 
-import "container/list"
-
-type (
-	ZoneData [][]Color
-	mainZone struct {
-		*list.List
-		ZoneData
-	}
+var (
+	constClearLine []Color
 )
 
-func newZoneData(height, width int) ZoneData {
-	ZoneData := make([][]Color, height)
-	for i, _ := range ZoneData {
-		ZoneData[i] = make([]Color, width)
-	}
-	return ZoneData
+type zone struct {
+	h, w     int
+	data     [][]Color
+	wrapZone [][]Color
 }
 
-func newMainZone(height, width int) mainZone {
-	l := list.New()
-	for i := 0; i < height; i++ {
-		l.PushBack(newClearLine(width))
+func newZone(height, width int) *zone {
+	constClearLine = make([]Color, width)
+	for i := range constClearLine {
+		constClearLine[i] = constColorNothing
 	}
-	return mainZone{
-		List:     l,
-		ZoneData: newZoneData(height, width),
+	z := make([][]Color, height)
+	for i := range z {
+		z[i] = make([]Color, width)
 	}
-}
-
-// convert mainZone lines to ZoneData
-func (m mainZone) toZoneData() ZoneData {
-	m.ZoneData.clear()
-	i := 0
-	for e := m.Front(); e != nil; e = e.Next() {
-		m.ZoneData[i] = e.Value.(line).toArray()
-		i++
+	w := make([][]Color, height)
+	for i := range w {
+		w[i] = make([]Color, width)
 	}
-	return m.ZoneData
-}
-
-// get line by height
-func (m mainZone) getLineByHeight(h int) (l line) {
-	var i = 0
-	for e := m.Front(); e != nil; e = e.Next() {
-		if i == h {
-			return e.Value.(line)
-		}
-		i++
-	}
-	return
-}
-
-// check if it is clear
-func (m mainZone) isClear() bool {
-	for e := m.Front(); e != nil; e = e.Next() {
-		if !e.Value.(line).isClear() {
-			return false
-		}
-	}
-	return true
-}
-
-// check if the block can be put on zone
-func (m mainZone) canPutBlock(b block) bool {
-	for _, v := range b {
-		if !m.ZoneData[v.y][v.x].isNothing() {
-			return false
-		}
-	}
-	return true
-}
-
-// place the block into main zone
-func (m mainZone) putBlockOnMainZone(b block) {
-	for _, v := range b {
-		m.getLineByHeight(v.y).placeDots(v.x, v.Color)
+	return &zone{
+		h:        height,
+		w:        width,
+		data:     z,
+		wrapZone: w,
 	}
 }
 
-// drop a block on main zone, return the last location of the block
-func (m mainZone) dropBlockOnZone(b block) block {
-	zone := m.toZoneData()
-	for zone.canBlockMoveDown(b) {
-		b = b.moveDown()
-	}
-	return b
-}
-
-// check hit bombs, returns the lines it clears
-func (m mainZone) checkHitBombs(b block) int {
-	i := m.toZoneData().hitBomb(b.toDots())
-	m.removeBombHitLines(i)
-	return i
-}
-
-// remove the bomb hit lines(the first n stone lines)
-func (m mainZone) removeBombHitLines(n int) {
-	if n <= 0 {
-		return
-	}
-	v := n
-	for e := m.Front(); e != nil; {
-		if !e.Value.(line).isStoneLine() {
-			e = e.Next()
-			continue
-		}
-		if e.Next() == nil {
-			m.Remove(e)
-			break
-		} else {
-			e = e.Next()
-			m.Remove(e.Prev())
-		}
-		n--
-		if n <= 0 {
-			break
-		}
-	}
-	for v > 0 {
-		m.PushFront(newClearLine(m.width()))
-		v--
+func (z zone) width() int                    { return z.w }
+func (z zone) height() int                   { return z.h }
+func (z zone) getDotByCoor(y, x int) Color   { return z.data[y][x] }
+func (z zone) getLineByHeight(y int) []Color { return z.data[y] }
+func (z *zone) setDot(y, x int, val Color)   { z.data[y][x] = val }
+func (z *zone) setLine(y int, val []Color) {
+	for x, v := range val {
+		z.data[y][x] = v
 	}
 }
 
-// remove the lines and add clear line in the front
-func (m mainZone) clearLines() (lines int) {
-	for e := m.Front(); e != nil; {
-		if e.Value.(line).isStoneLine() {
-			break
-		}
-		if !e.Value.(line).canClear() {
-			e = e.Next()
-			continue
-		}
-		lines++
-		if e.Next() == nil {
-			m.Remove(e)
-			m.PushFront(newClearLine(m.width()))
-			break
-		}
-		e = e.Next()
-		m.Remove(e.Prev())
-		m.PushFront(newClearLine(m.width()))
-	}
-	return
-}
-
-// check if it is able to filled n stone lines
-func (m mainZone) canFilledStoneLines(n int) bool {
-	for e := m.Front(); e != nil; e = e.Next() {
-		l := e.Value.(line)
-		if !l.isClear() {
-			break
-		}
-		n--
-		if n <= 0 {
+// check whether the line is a stone line
+func (z zone) isStoneLine(y int) bool {
+	for _, c := range z.getLineByHeight(y) {
+		if c.isStone() || c.isBomb() {
 			return true
 		}
 	}
 	return false
 }
 
-// add stone lines and remove the clear lines
-func (m mainZone) addStoneLines(n int) {
-	for n > 0 {
-		n--
-		m.Remove(m.Front())
-		m.PushBack(newBombLine(m.width()))
+// check whether the line contains nothing
+func (z zone) isNothingLine(y int) bool {
+	for _, c := range z.getLineByHeight(y) {
+		if !c.isNothing() {
+			return false
+		}
 	}
+	return true
 }
 
-// remove stone lines
-func (m mainZone) removeStoneLines() {
-	var i = 0
-	for e := m.Back(); e != nil; {
-		if !e.Value.(line).isStoneLine() {
+// get the x-coordinate of the bomb on a stone line
+func (z zone) getBombXCoor(y int) (x int) {
+	x = -1
+	for i, c := range z.getLineByHeight(y) {
+		if c.isBomb() {
+			x = i
 			break
-		}
-		i++
-		if e.Prev() == nil {
-			m.Remove(e)
-			break
-		}
-		e = e.Prev()
-		m.Remove(e.Next())
-	}
-	for i > 0 {
-		m.PushFront(newClearLine(m.width()))
-		i--
-	}
-}
-
-// being ko ?
-func (m mainZone) beingKO() bool {
-	return m.Front().Value.(line).containAnyActiveDot()
-}
-
-// clear the ZoneData
-func (zone ZoneData) clear() ZoneData {
-	for h, l := range zone {
-		for w, _ := range l {
-			zone[h][w] = newColor(Color_nothing)
-			// zone[h][w] = Color_nothing
-		}
-	}
-	return zone
-}
-
-// render a block on zone
-func (zone ZoneData) renderBlockOnZone(b block) ZoneData {
-	for _, v := range b {
-		zone[v.y][v.x] = b.Color()
-	}
-	return zone
-}
-
-// render projection of the block on zone
-func (zone ZoneData) renderProjectionOfBlockOnZone(b block) ZoneData {
-	for zone.canBlockMoveDown(b) {
-		b = b.moveDown()
-	}
-	(&b).transparentBlock()
-	return zone.renderBlockOnZone(b)
-}
-
-// check if the block hit the bomb
-func (zone ZoneData) hitBomb(ds []dot) (lines int) {
-	for _, v := range ds {
-		var depth int
-		if tmpDs := zone.canTraverse(v); tmpDs != nil {
-			depth += 1 + zone.hitBomb(tmpDs)
-		}
-		if lines < depth {
-			lines = depth
 		}
 	}
 	return
 }
 
-func (zone ZoneData) canTraverse(d dot) []dot {
-	if d.y < 0 || d.y >= zone.height()-1 {
-		return nil
-	}
-	if d.x < 0 || d.x > zone.width()-1 {
-		return nil
-	}
-	if zone[d.y+1][d.x].isBomb() {
-		ds := make([]dot, 0)
-		tmpDot := newDot(d.x, d.y+1, zone[d.y+1][d.x])
-		ds = append(ds, tmpDot)
-		for tmpDot.x > 0 && zone[tmpDot.y][tmpDot.x-1].isBomb() {
-			tmpDot = newDot(tmpDot.x-1, tmpDot.y, zone[tmpDot.y][tmpDot.x-1])
-			ds = append(ds, tmpDot)
+// the function should be called after clearLinesByIndex
+// check whether the game zone is clear
+func (z zone) isZoneClear() bool {
+	for y := 0; y < z.height(); y++ {
+		for x := 0; x < z.width(); x++ {
+			if !z.getDotByCoor(y, x).isNothing() {
+				return false
+			}
 		}
-		tmpDot = newDot(d.x, d.y+1, zone[d.y+1][d.x])
-		for tmpDot.x < zone.width()-1 && zone[tmpDot.y][tmpDot.x+1].isBomb() {
-			tmpDot = newDot(tmpDot.x+1, tmpDot.y, zone[tmpDot.y][tmpDot.x+1])
-			ds = append(ds, tmpDot)
-		}
-		return ds
 	}
-	return nil
+	return true
 }
 
-// check if a block can move down
-func (zone ZoneData) canBlockMoveDown(b block) bool {
-	for _, v := range b {
-		if v.y >= zone.height()-1 || !zone[v.y+1][v.x].isNothing() || !zone[v.y+1][v.x].isTransparent() {
+// the function should be called after setting the active block on zone
+// calculate which lines should be cleared
+// return the index of lines, num of lines to clear, num of bombs hit
+func (z zone) calculateLinesToClear(b block) ([]int, int, int) {
+	ltc := make([]int, 0)
+	lines := 0
+	bombs := 0
+loopY:
+	for y := 0; y < z.height(); y++ {
+		if z.isNothingLine(y) {
+			continue
+		}
+		// if the line is a stone line
+		// check whether the block hits the bomb
+		// if hit, check how many bombs it hits
+		// after all checking, the loop should be exit
+		// because stone line is the last to check
+		if z.isStoneLine(y) {
+			xOfBomb := z.getBombXCoor(y)
+			for _, d := range b {
+				if d.y != y-1 {
+					continue
+				}
+				if d.x == xOfBomb {
+					bombs++
+					ltc = append(ltc, y)
+					for y = y + 1; y < z.height(); y++ {
+						xOfBomb = z.getBombXCoor(y)
+						if xOfBomb != d.x {
+							break loopY
+						}
+						bombs++
+						ltc = append(ltc, y)
+					}
+				}
+			}
+			break loopY
+		}
+		// if the line only contains active color
+		// it should be clear
+		for x := 0; x < z.width(); x++ {
+			c := z.getDotByCoor(y, x)
+			if !c.isActiveColor() {
+				continue loopY
+			}
+		}
+		ltc = append(ltc, y)
+		lines++
+	}
+	return ltc, lines, bombs
+}
+
+// the indice should be sorted asc
+func (z *zone) clearLinesByIndex(indice []int) {
+	for _, y := range indice {
+		if y > 0 {
+			for i := y; i > 0; i-- {
+				z.setLine(i, z.getLineByHeight(i-1))
+			}
+		}
+		z.setLine(0, constClearLine)
+	}
+}
+
+// remove the stone lines after being ko by the opponent
+func (z *zone) removeStoneLines() {
+	indice := make([]int, 0)
+	for y := 0; y < z.height(); y++ {
+		if z.isStoneLine(y) {
+			indice = append(indice, y)
+		}
+	}
+	z.clearLinesByIndex(indice)
+}
+
+// the function should be called after canHoldStoneLines
+// add n stone lines to the zone
+func (z *zone) addStoneLinesToZone(n int) {
+	var l = z.height()
+	for n > 0 {
+		n--
+		var stoneLine = make([]Color, z.width())
+		xOfBomb := randSeed.Intn(z.width())
+		for i := 0; i < z.width(); i++ {
+			if i == xOfBomb {
+				stoneLine[i] = constColorBomb
+			} else {
+				stoneLine[i] = constColorStone
+			}
+		}
+		for i := 0; i < l-1; i++ {
+			z.setLine(i, z.getLineByHeight(i+1))
+		}
+		z.setLine(l-1, stoneLine)
+	}
+}
+
+// check if the zone can hold num stone lines or not
+func (z zone) canHoldStoneLines(num int) bool {
+	n := 0
+	for y := 0; y < z.height(); y++ {
+		if z.isNothingLine(y) {
+			n++
+			if n >= num {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// check if being ko
+func (z zone) beingKO() bool {
+	return !z.canHoldStoneLines(1)
+}
+
+// the function should be called after canPutBlockOnZone
+// put the block on zone
+func (z *zone) putBlockOnZone(b block) {
+	for _, d := range b {
+		if z.getDotByCoor(d.y, d.x).isNothing() {
+			z.setDot(d.y, d.x, d.Color)
+		}
+	}
+}
+
+// drop a block on main zone, return the last location of the block
+func (z zone) dropBlockOnZone(b block) block {
+	for z.canBlockMoveDown(b) {
+		b = b.moveDown()
+	}
+	return b
+}
+
+// remember to call this function after being attacked
+// to check if the block can be put on the zone or not
+//
+// check if the block can be put on the zone
+func (z zone) canPutBlockOnZone(b block) bool {
+	for _, d := range b {
+		if !z.getDotByCoor(d.y, d.x).isNothing() {
 			return false
 		}
 	}
 	return true
 }
 
-// check if a block can move right
-func (zone ZoneData) canBlockMoveRight(b block) bool {
-	for _, v := range b {
-		if v.x >= zone.width()-1 || !zone[v.y][v.x+1].isNothing() {
+// check if the block can move down
+func (z zone) canBlockMoveDown(b block) bool {
+	for _, d := range b {
+		if d.y >= z.height()-1 || !z.getDotByCoor(d.y+1, d.x).isNothing() {
 			return false
 		}
 	}
 	return true
 }
 
-// check if a block can move left
-func (zone ZoneData) canBlockMoveLeft(b block) bool {
-	for _, v := range b {
-		if v.x <= 0 || !zone[v.y][v.x-1].isNothing() {
+// check if the block can move left
+func (z zone) canBlockMoveLeft(b block) bool {
+	for _, d := range b {
+		if d.x <= 0 || !z.getDotByCoor(d.y, d.x-1).isNothing() {
 			return false
 		}
 	}
 	return true
 }
 
-// check if a block can rotate
-func (zone ZoneData) canBlockRotate(b block) (block, bool) {
+// check if the block can move right
+func (z zone) canBlockMoveRight(b block) bool {
+	for _, d := range b {
+		if d.x >= z.width()-1 || !z.getDotByCoor(d.y, d.x+1).isNothing() {
+			return false
+		}
+	}
+	return true
+}
+
+// check if the block can rotate
+func (z zone) canBlockRotate(b block) (block, bool) {
 	b = b.rotate()
 	// better op
 	for b.outBoundTop(0) {
 		b = b.moveDown()
 	}
-	for b.outBoundButtom(zone.height() - 1) {
+	for b.outBoundButtom(z.height() - 1) {
 		b = b.moveUp()
 	}
 	for b.outBoundLeft(0) {
 		b = b.moveRight()
 	}
-	for b.outBoundRight(zone.width() - 1) {
+	for b.outBoundRight(z.width() - 1) {
 		b = b.moveLeft()
 	}
 	for _, v := range b {
-		if !zone[v.y][v.x].isNothing() {
+		if !z.getDotByCoor(v.y, v.x).isNothing() {
 			return b, false
 		}
 	}
 	return b, true
 }
 
-func (zone ZoneData) height() int {
-	return len(zone)
-}
-
-func (zone ZoneData) width() int {
-	return len(zone[0])
+// render zone for AS client
+func (z *zone) render(b block) [][]Color {
+	// render projection of the block
+	projB := b
+	for z.canBlockMoveDown(projB) {
+		projB = projB.moveDown()
+	}
+	(&projB).transparentBlock()
+	// z.putBlockOnZone(projB)
+	// render active block
+	// z.putBlockOnZone(b)
+	for y := 0; y < z.height(); y++ {
+		for x := 0; x < z.width(); x++ {
+			z.wrapZone[y][x] = z.getDotByCoor(y, x)
+		}
+	}
+	for _, d := range projB {
+		z.wrapZone[d.y][d.x] = d.Color
+	}
+	for _, d := range b {
+		z.wrapZone[d.y][d.x] = d.Color
+	}
+	// return z.data
+	return z.wrapZone
 }

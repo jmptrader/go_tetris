@@ -15,7 +15,7 @@ var g *tetris.Game
 
 func init() {
 	var err error
-	g, err = tetris.NewGame(20, 10, 5, 500)
+	g, err = tetris.NewGame(20, 10, 5, 3000)
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
@@ -30,7 +30,7 @@ func main() {
 		d := g.GetData()
 		switch d.Description {
 		case "zone":
-			renderScreen(d.Val.(tetris.ZoneData))
+			renderScreen(d.Val.([][]tetris.Color))
 		default:
 			b, _ := json.Marshal(d.Val)
 			log.Printf("%s: %v", d.Description, string(b))
@@ -45,11 +45,11 @@ func attack() {
 	}
 }
 
-func renderScreen(z tetris.ZoneData) {
-	b, _ := json.Marshal(map[string]interface{}{
-		"zone": z,
-	})
-	fmt.Println(len(b))
+func renderScreen(z [][]tetris.Color) {
+	// b, _ := json.Marshal(map[string]interface{}{
+	// 	"zone": z,
+	// })
+	// fmt.Println(len(b))
 
 	// do something
 	for i := 0; i < len(z[0]); i++ {
@@ -62,11 +62,11 @@ func renderScreen(z tetris.ZoneData) {
 		lstr := ""
 		for _, c := range l {
 			switch cc := int(c); cc {
-			case tetris.Color_nothing:
+			case 0:
 				lstr += " "
-			case tetris.Color_bomb:
+			case -98:
 				lstr += "*"
-			case tetris.Color_stone:
+			case -99:
 				lstr += "#"
 			default:
 				if cc > 0 {
@@ -142,18 +142,18 @@ func handleInput() {
 		key := make([]byte, 1)
 		os.Stdin.Read(key)
 		switch string(key) {
-		case "j":
+		case "a":
 			g.MoveLeft()
-		case "l":
+		case "d":
 			g.MoveRight()
-		case "k":
+		case "s":
 			g.MoveDown()
 		case " ":
 			g.DropDown()
-		case "i":
+		case "w":
 			g.Rotate()
-		case "r":
-			g.Reserve()
+		case "h":
+			g.Hold()
 		}
 	}
 }

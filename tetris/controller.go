@@ -56,7 +56,8 @@ type Game struct {
 	sync.Mutex
 
 	// main game zone
-	mainZone mainZone
+	// mainZone mainZone
+	mainZone *zone
 
 	// the timer
 	timer *timer.Timer
@@ -90,7 +91,7 @@ func NewGame(height, width, numOfNextPieces, interval int) (*Game, error) {
 		np.addNewPiece(newPiece(width/2 - 2))
 	}
 	g := &Game{
-		mainZone:     newMainZone(height, width),
+		mainZone:     newZone(height, width),
 		timer:        timer.NewTimer(interval),
 		activePiece:  newPiece(width/2 - 2),
 		holdPiece:    nil,
@@ -126,8 +127,6 @@ func (g *Game) check(moveDown, dropDown bool) {
 	g.Lock()
 	defer g.Unlock()
 
-	g.mainZone.toZoneData()
-
 	var genNewPiece bool
 	switch {
 	case moveDown:
@@ -141,10 +140,17 @@ func (g *Game) check(moveDown, dropDown bool) {
 		genNewPiece = true
 	}
 
+	// if it is dropDown or moveDown, the timer should be reset
+	if dropDown || moveDown {
+		g.timer.Reset()
+	}
+
 	if genNewPiece {
 		g.holded = false
 
-		g.mainZone.putBlockOnMainZone(g.activePiece.block)
+		// g.mainZone.putBlockOnMainZone(g.activePiece.block)
+		g.mainZone.putBlockOnZone(g.activePiece.block)
+
 		if lineSent := g.calculate(); lineSent > 0 {
 			g.scoreAdd(lineSent)
 			g.AttackChan <- lineSent
@@ -157,11 +163,6 @@ func (g *Game) check(moveDown, dropDown bool) {
 		g.send(DescNextPiece, g.nextPieces)
 	}
 
-	// if it is dropDown or moveDown, the timer should be reset
-	if dropDown || moveDown {
-		g.timer.Reset()
-	}
-
 	// if being ko
 	if g.mainZone.beingKO() {
 		g.BeingKOChan <- true
@@ -169,11 +170,14 @@ func (g *Game) check(moveDown, dropDown bool) {
 	}
 
 	// render new zone
-	if g.mainZone.canPutBlock(g.activePiece.block) {
-		g.send(DescZone, g.mainZone.toZoneData().
-			renderProjectionOfBlockOnZone(g.activePiece.block).
-			renderBlockOnZone(g.activePiece.block))
-	}
+	// if g.mainZone.canPutBlock(g.activePiece.block) {
+	// 	g.send(DescZone, g.mainZone.toZoneData().
+	// 		renderProjectionOfBlockOnZone(g.activePiece.block).
+	// 		renderBlockOnZone(g.activePiece.block))
+	// }
+	data := g.mainZone.render(g.activePiece.block)
+	g.send(DescZone, data)
+	// g.mainZone.unrender(g.activePiece.block)
 }
 
 // get data
@@ -206,7 +210,7 @@ func (g *Game) MoveLeft() {
 	func() {
 		g.Lock()
 		defer g.Unlock()
-		if g.mainZone.toZoneData().canBlockMoveLeft(g.activePiece.block) {
+		if g.mainZone.canBlockMoveLeft(g.activePiece.block) {
 			g.activePiece.block = g.activePiece.block.moveLeft()
 		}
 	}()
@@ -218,7 +222,7 @@ func (g *Game) MoveRight() {
 	func() {
 		g.Lock()
 		defer g.Unlock()
-		if g.mainZone.toZoneData().canBlockMoveRight(g.activePiece.block) {
+		if g.mainZone.canBlockMoveRight(g.activePiece.block) {
 			g.activePiece.block = g.activePiece.block.moveRight()
 		}
 	}()
@@ -230,7 +234,7 @@ func (g *Game) Rotate() {
 	func() {
 		g.Lock()
 		defer g.Unlock()
-		if b, can := g.mainZone.toZoneData().canBlockRotate(g.activePiece.block); can {
+		if b, can := g.mainZone.canBlockRotate(g.activePiece.block); can {
 			g.activePiece.block = b
 		}
 	}()
@@ -262,8 +266,11 @@ func (g *Game) BeingAttacked(n int) {
 	if ko := func() bool {
 		g.Lock()
 		defer g.Unlock()
-		if g.mainZone.canFilledStoneLines(n) {
-			g.mainZone.addStoneLines(n)
+		if g.mainZone.canHoldStoneLines(n) {
+			g.mainZone.addStoneLinesToZone(n)
+			if !g.mainZone.canPutBlockOnZone(g.activePiece.block) {
+				g.activePiece = g.nextPieces.getOne(newPiece(g.mainZone.width()/2 - 2))
+			}
 			return false
 		}
 		g.mainZone.removeStoneLines()
@@ -345,22 +352,29 @@ func (g *Game) send(desc string, val interface{}) {
 // calculate score
 // score = bomb + clear_lines + combo + if_zone_clear_then_10
 func (g *Game) calculate() (lineSent int) {
+	indice, l, hitBombs := g.mainZone.calculateLinesToClear(g.activePiece.block)
+	if len(indice) != l+hitBombs {
+		fmt.Printf("length of indice %d is not equal to lines + hitbombs = %d\n", len(indice), l+hitBombs)
+	}
+
+	g.mainZone.clearLinesByIndex(indice)
 	// num of bombs hit and lines clear
-	hitBombs := g.mainZone.checkHitBombs(g.activePiece.block)
+	// hitBombs := g.mainZone.checkHitBombs(g.activePiece.block)
 	if hitBombs > 0 {
 		g.send(DescAudio, audioHitBomb())
 	}
-	l := g.mainZone.clearLines()
+	// l := g.mainZone.clearLines()
 
 	// clear
-	if g.mainZone.isClear() {
+	if g.mainZone.isZoneClear() {
 		lineSent += 10
 		g.send(DescClear, true)
+		g.comboAdd()
 		return
 	}
 
 	// not combo, reset combo, return
-	if (l + hitBombs + lineSent) <= 1 {
+	if (l + hitBombs) <= 1 {
 		g.comboReset()
 		return
 	}

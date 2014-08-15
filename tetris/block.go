@@ -14,70 +14,70 @@ var blocks = []block{
 		####
 	*/
 	block([defaultNumOfDotsInABlock]dot{
-		newDot(0, 0, newColor(1)),
-		newDot(1, 0, newColor(1)),
-		newDot(2, 0, newColor(1)),
-		newDot(3, 0, newColor(1)),
+		newDot(0, 0, 1),
+		newDot(1, 0, 1),
+		newDot(2, 0, 1),
+		newDot(3, 0, 1),
 	}),
 	/*
 		#
 		###
 	*/
 	block([defaultNumOfDotsInABlock]dot{
-		newDot(0, 0, newColor(2)),
-		newDot(0, 1, newColor(2)),
-		newDot(1, 1, newColor(2)),
-		newDot(2, 1, newColor(2)),
+		newDot(0, 0, 2),
+		newDot(0, 1, 2),
+		newDot(1, 1, 2),
+		newDot(2, 1, 2),
 	}),
 	/*
 		  #
 		###
 	*/
 	block([defaultNumOfDotsInABlock]dot{
-		newDot(2, 0, newColor(3)),
-		newDot(0, 1, newColor(3)),
-		newDot(1, 1, newColor(3)),
-		newDot(2, 1, newColor(3)),
+		newDot(2, 0, 3),
+		newDot(0, 1, 3),
+		newDot(1, 1, 3),
+		newDot(2, 1, 3),
 	}),
 	/*
 		 #
 		###
 	*/
 	block([defaultNumOfDotsInABlock]dot{
-		newDot(1, 0, newColor(4)),
-		newDot(0, 1, newColor(4)),
-		newDot(1, 1, newColor(4)),
-		newDot(2, 1, newColor(4)),
+		newDot(1, 0, 4),
+		newDot(0, 1, 4),
+		newDot(1, 1, 4),
+		newDot(2, 1, 4),
 	}),
 	/*
 		##
 		 ##
 	*/
 	block([defaultNumOfDotsInABlock]dot{
-		newDot(0, 0, newColor(5)),
-		newDot(1, 0, newColor(5)),
-		newDot(1, 1, newColor(5)),
-		newDot(2, 1, newColor(5)),
+		newDot(0, 0, 5),
+		newDot(1, 0, 5),
+		newDot(1, 1, 5),
+		newDot(2, 1, 5),
 	}),
 	/*
 		 ##
 		##
 	*/
 	block([defaultNumOfDotsInABlock]dot{
-		newDot(1, 0, newColor(6)),
-		newDot(2, 0, newColor(6)),
-		newDot(0, 1, newColor(6)),
-		newDot(1, 1, newColor(6)),
+		newDot(1, 0, 6),
+		newDot(2, 0, 6),
+		newDot(0, 1, 6),
+		newDot(1, 1, 6),
 	}),
 	/*
 		##
 		##
 	*/
 	block([defaultNumOfDotsInABlock]dot{
-		newDot(1, 0, newColor(7)),
-		newDot(1, 1, newColor(7)),
-		newDot(2, 0, newColor(7)),
-		newDot(2, 1, newColor(7)),
+		newDot(1, 0, 7),
+		newDot(1, 1, 7),
+		newDot(2, 0, 7),
+		newDot(2, 1, 7),
 	}),
 }
 
@@ -144,7 +144,7 @@ func (b block) Color() Color {
 
 func (b *block) transparentBlock() {
 	for i, _ := range b {
-		b[i].Color = b[i].Color.toTransparent()
+		b[i].Color = constColorTransparent
 	}
 }
 
