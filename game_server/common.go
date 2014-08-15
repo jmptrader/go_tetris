@@ -27,6 +27,7 @@ func recv(conn *net.TCPConn) (d requestData, err error) {
 // send data
 func send(conn *net.TCPConn, desc string, data interface{}) error {
 	if conn == nil {
+		log.Debug("the connection is nil, can not send")
 		return errNilConn
 	}
 	err := utils.SendDataOverTcp(conn, newResponse(desc, data).toJson())

@@ -101,10 +101,12 @@ func (stub) SetNormalGameResult(tid, winnerUid, bet int) {
 	}
 	switch winnerUid {
 	case table.Get1pUid():
+		log.Debug("winner is 1p, sending win, lose, result msg via tcp")
 		send(table.Get1pConn(), descGameWin, construct(true, bet))
 		send(table.Get2pConn(), descGameLose, construct(false, bet))
 		sendAll(descGameResult, "1P 赢得本局游戏", table.GetObConns()...)
 	case table.Get2pUid():
+		log.Debug("winner is 2p, sending win, lose, result msg via tcp")
 		send(table.Get2pConn(), descGameWin, construct(true, bet))
 		send(table.Get1pConn(), descGameLose, construct(false, bet))
 		sendAll(descGameResult, "2P 赢得本局游戏", table.GetObConns()...)
@@ -112,7 +114,7 @@ func (stub) SetNormalGameResult(tid, winnerUid, bet int) {
 		log.Debug("the winner uid is neither 1p nor 2p, who is it: %v", winnerUid)
 	}
 	table.ResetTable()
-	refreshTable(tid, false)
+	// refreshTable(tid, false)
 }
 
 // TODO: not confirmed yet
