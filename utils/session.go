@@ -8,20 +8,27 @@ import (
 )
 
 const (
-	cookieSessId = "sessId"
+	cookieSessId  = "sessId"
+	defaultExpire = 1800
 )
 
 // session store
 type sessionStore struct {
 	sess           map[string]*session // sessionId -> *session
-	expireInMinute int64               // minimum 30 minutes
+	expireInSecond int64               // expire in seconds, default 1800 seconds
 	mu             sync.RWMutex
 }
 
-func NewSessionStore() *sessionStore {
+func NewSessionStore(expires ...int64) *sessionStore {
+	var expire int64
+	if l := len(expires); l > 0 {
+		expire = expires[l-1]
+	} else {
+		expire = defaultExpire
+	}
 	ss := &sessionStore{
 		sess:           make(map[string]*session),
-		expireInMinute: 120,
+		expireInSecond: expire,
 	}
 	return ss.init()
 }
@@ -52,14 +59,18 @@ func (ss *sessionStore) gc() {
 		tNow := time.Now().Unix()
 		sss := make([]string, 0)
 		for sessId, v := range ss.sess {
-			if (tNow-v.updated)/60 > ss.expireInMinute {
+			if tNow-v.updated > ss.expireInSecond {
 				sss = append(sss, sessId)
 			}
 		}
 		return sss
 	}
+	frequency := time.Minute
+	if ss.expireInSecond < 60 {
+		frequency = time.Second * time.Duration(ss.expireInSecond)
+	}
 	for {
-		time.Sleep(1 * time.Minute)
+		time.Sleep(frequency)
 		ss.delSession(getExpire()...)
 	}
 }
