@@ -12,8 +12,13 @@ import (
 var errNilConn = fmt.Errorf("the connection is nil")
 
 // receive data
-func recv(conn *types.User) (d requestData, err error) {
-	b, err := conn.Read()
+func recv(user *types.User) (d requestData, err error) {
+	conn := user.GetReadConn()
+	if conn == nil {
+		err = errNilConn
+		return
+	}
+	b, err := utils.ReadDataOverTcp(conn)
 	if err != nil {
 		return
 	}
@@ -36,12 +41,24 @@ func recvDefault(conn *net.TCPConn) (d requestData, err error) {
 }
 
 // send data
-func send(conn *types.User, desc string, data interface{}) error {
-	err := conn.Write(newResponse(desc, data).toJson())
+func send(user *types.User, desc string, data interface{}) error {
+	conn := user.GetWriteConn()
+	if conn == nil {
+		log.Debug("the connection is nil, can not send")
+		return errNilConn
+	}
+	err := utils.SendDataOverTcp(conn, newResponse(desc, data).toJson())
 	if err != nil {
 		log.Debug("can not send response data ->\ndesc: %v, data: %v, error: %v", desc, data, err)
 	}
 	return err
+}
+
+// send to all
+func sendAll(desc string, val interface{}, conns ...*types.User) {
+	for _, c := range conns {
+		send(c, desc, val)
+	}
 }
 
 // send data
@@ -57,11 +74,11 @@ func sendDefault(conn *net.TCPConn, desc string, data interface{}) error {
 	return err
 }
 
-// close a connection
-func closeConn(conns ...*types.User) {
-	for _, conn := range conns {
-		if err := conn.Close(); err != nil {
-			log.Debug("can not close the connection: %v", err)
+// close a user's connection
+func closeConn(users ...*types.User) {
+	for _, u := range users {
+		if err := u.Close(); err != nil {
+			log.Debug("can not close a user's connection: %v", err)
 		}
 	}
 }

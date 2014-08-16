@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gogames/go_tetris/types"
@@ -10,7 +11,14 @@ import (
 var normalHall = types.NewNormalHall()
 var tournamentHall *types.TournamentHall
 
+var hostFormat string
+
+func constructHost(ip string) string { return fmt.Sprintf(hostFormat, ip) }
+
 func initHall() {
+	hostFormat = `%s:` + gameServerSocketPort
+	log.Debug("the host format is %s", hostFormat)
+
 	go releaseExpires()
 	go createTournamentForever()
 }
@@ -43,7 +51,11 @@ func createTournamentForever() {
 		time.Sleep(5 * time.Second)
 		if tournamentHall == nil || tournamentHall.TournamentEnded() {
 			n := nextTournaments.FlashGet()
-			tournamentHall = types.NewTournamentHall(n.numCandidate, n.awardGold, n.awardSilver, clients.BestServer()+":"+gameServerSocketPort, n.sponsor)
+			ip := clients.BestServer()
+			if ip == "" {
+				continue
+			}
+			tournamentHall = types.NewTournamentHall(n.numCandidate, n.awardGold, n.awardSilver, constructHost(ip), n.sponsor)
 		}
 	}
 }

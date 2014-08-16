@@ -4,13 +4,10 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"time"
 
-	"github.com/gogames/go_tetris/tetris"
-	"github.com/gogames/go_tetris/types"
 	"github.com/gogames/go_tetris/utils"
 )
 
@@ -41,53 +38,30 @@ func initSocketServer() {
 				closeConnDefault(conn)
 				continue
 			}
-			go serveTcpConn(conn)
+			go serveAuth(conn)
 		}
 	}()
 }
 
-const (
-	opRotate = "rotate"
-	opLeft   = "left"
-	opRight  = "right"
-	opDown   = "down"
-	opDrop   = "drop"
-	opHold   = "hold"
-)
-
 // request command
 const (
-	cmdAuth    = "auth"
-	cmdChat    = "chat"
-	cmdOperate = "operate"
-	cmdReady   = "switchState"
-	cmdQuit    = "quit"
-	cmdPing    = "ping"
-)
-
-// response description
-const (
-	descError                      = "error"
-	descChatMsg                    = "chat"
-	descRefreshNormalTableInfo     = "refreshNormal"
-	descRefreshTournamentTableInfo = "refreshTournament"
-	descSysMsg                     = "sysMsg"
-	descStart                      = "start"
-	desc1p                         = "1p"
-	desc2p                         = "2p"
-	descTimer                      = "timer"
-	descGameWin                    = "win"
-	descGameLose                   = "lose"
-	descGameResult                 = "result"
+	cmdAuthRead  = "authWrite"
+	cmdAuthWrite = "authRead"
+	cmdChat      = "chat"
+	cmdOperate   = "operate"
+	cmdReady     = "switchState"
+	cmdQuit      = "quit"
+	cmdPing      = "ping"
 )
 
 var (
-	pingDuration   = 5
-	authenDuration = 10 * time.Second
+	pingDuration        = 5
+	authenDuration      = 10 * time.Second
+	writeConnJoinWindow = 10
 )
 
-func serveTcpConn(conn *net.TCPConn) {
-	defer utils.RecoverFromPanic("serve tcp connection panic: ", log.Critical, nil)
+func serveAuth(conn *net.TCPConn) {
+	defer utils.RecoverFromPanic("serve read tcp connection panic: ", log.Critical, nil)
 	// keep the connection alive
 	if err := conn.SetKeepAlive(true); err != nil {
 		log.Debug("set keep alive error: %v", err)
@@ -103,238 +77,13 @@ func serveTcpConn(conn *net.TCPConn) {
 		closeConnDefault(conn)
 		return
 	}
-	if data.Cmd != cmdAuth {
-		log.Debug("the first command is not auth, the data is %v", data)
-		sendDefault(conn, descError, "the first command should be auth, are you hacker?")
-		closeConnDefault(conn)
-		return
-	}
-	// parse the token, see what to do next
-	uid, nickname, isApply, isOb, isTournament, tid, err := utils.ParseToken(data.Data)
-	if err != nil {
-		log.Debug("can not parse the token: %v", err)
-		sendDefault(conn, descError, fmt.Sprintf("can not parse the token %s, are you hacker?", data.Data))
-		closeConnDefault(conn)
-		return
-	}
-	// create a new user, add it into tables
-	u := types.NewUser(uid, "", "", nickname, "")
-	u.SetConn(conn)
-	switch {
-	case isApply:
-		// apply for tournament
-		tid, err := authServerStub.Apply(uid)
-		if err != nil {
-			log.Warn("can not apply for tournament, auth server error: %v", err)
-			sendDefault(conn, descError, fmt.Sprintf("报名失败, 错误: %v", err))
-			closeConnDefault(conn)
-			return
-		}
-		if !tables.IsTableExist(tid) {
-			tables.NewTable(tid, "", "", 0)
-		}
-		// the err should always be nil actually
-		if err := tables.JoinTable(tid, u, false); err != nil {
-			log.Debug("can not join the table, game server error: %v", err)
-			sendDefault(conn, descError, fmt.Sprintf("无法加入桌子, 错误: %v", err))
-			closeConnDefault(conn)
-			return
-		}
-		refreshTable(tid, true)
-		sendAll(descSysMsg, fmt.Sprintf("参赛者 %s 加入", nickname), tables.GetTableById(tid).GetAllConns()...)
-	case isOb:
-		// inform the auth server that some one is going to observe a game
-		if err := obGame(tid, uid, isTournament); err != nil {
-			log.Warn("can not ob a game, auth server error: %v", err)
-			sendDefault(conn, descError, fmt.Sprintf("无法观战, 错误: %v", err))
-			closeConnDefault(conn)
-			return
-		}
-		if err := tables.JoinTable(tid, u, true); err != nil {
-			log.Critical("can not ob a game, game server error: %v", err)
-			sendDefault(conn, descError, fmt.Sprintf("无法观战, 错误: %v", err))
-			closeConnDefault(conn)
-			return
-		}
-		// do not inform all people that an observer join the table
-		// refreshTable(tid, isTournament)
-		sendAll(descSysMsg, fmt.Sprintf("用户 %s 进入观战", nickname), tables.GetTableById(tid).GetAllConns()...)
+	switch data.Cmd {
+	case cmdAuthRead:
+		serveRead(conn, data.Data)
+	case cmdAuthWrite:
+		serveWrite(conn, data.Data)
 	default:
-		// normal hall
-		if err := authServerStub.Join(tid, uid, false); err != nil {
-			log.Warn("can not join a game, auth server error: %v", err)
-			sendDefault(conn, descError, fmt.Sprintf("无法加入桌子, 错误: %v", err))
-			closeConnDefault(conn)
-			return
-		}
-		if err := tables.JoinTable(tid, u, isOb); err != nil {
-			log.Critical("can not join a game, game server error: %v", err)
-			sendDefault(conn, descError, fmt.Sprintf("无法加入桌子, 错误: %v", err))
-			closeConnDefault(conn)
-			return
-		}
-		refreshTable(tid, false)
-		sendAll(descSysMsg, fmt.Sprintf("玩家 %s 加入游戏", nickname), tables.GetTableById(tid).GetAllConns()...)
+		log.Debug("the first command is not auth read or write, the data is %v", data)
+		closeConnDefault(conn)
 	}
-	go handleConn(u, uid, tid, nickname, isOb, tables.GetTableById(tid).Is1p(uid), isTournament)
-}
-
-func handleConn(conn *types.User, uid, tid int, nickname string, isOb, is1p, isTournament bool) {
-	var handleQuit = func() {
-		quit(tid, uid, nickname, isOb, is1p, isTournament)
-		closeConn(conn)
-		refreshTable(tid, isTournament)
-	}
-	defer utils.RecoverFromPanic("handle connection panic: ", log.Critical, handleQuit)
-	table := tables.GetTableById(tid)
-	if table == nil {
-		log.Debug("the table is already been deleted")
-		return
-	}
-forLoop:
-	for {
-		if err := conn.SetReadTimeoutInSecs(pingDuration); err != nil {
-			log.Debug("can not set heartbeat deadline, error: %v", err)
-		}
-		// receive data from client
-		data, err := recv(conn)
-		if err != nil {
-			log.Debug("can not receive request from table %d, user %s: %v", tid, nickname, err)
-			handleQuit()
-			return
-		}
-		switch data.Cmd {
-		case cmdChat:
-			msg := fmt.Sprintf("%s: %s", nickname, data.Data)
-			sendAll(descChatMsg, msg, table.GetObConns()...)
-			if !isOb {
-				send(table.Get1pConn(), descChatMsg, msg)
-				send(table.Get2pConn(), descChatMsg, msg)
-			}
-		case cmdReady:
-			if table.IsStart() {
-				log.Debug("receive a ready command after game is start: %v", data)
-				send(conn, descError,
-					"game is already start, how come you send a ready switch command to me! Are you hacker?")
-				continue forLoop
-			}
-			if isOb {
-				log.Debug("observer can not switch ready state")
-				send(conn, descError, "观战者无法准备或者取消准备")
-				continue forLoop
-			}
-			if err := authServerStub.SwitchReady(tid, uid); err != nil {
-				log.Warn("can not switch user's ready state: %v", err)
-				send(conn, descError, err.Error())
-				continue forLoop
-			}
-			refreshTable(tid, isTournament)
-		case cmdQuit:
-			// quit a game
-			handleQuit()
-			return
-		case cmdOperate:
-			if !table.IsStart() {
-				continue forLoop
-			}
-			var g *tetris.Game
-			if is1p {
-				g = table.GetGame1p()
-			} else {
-				g = table.GetGame2p()
-			}
-			switch data.Data {
-			case opDown:
-				g.MoveDown()
-			case opDrop:
-				g.DropDown()
-			case opLeft:
-				g.MoveLeft()
-			case opRight:
-				g.MoveRight()
-			case opRotate:
-				g.Rotate()
-			case opHold:
-				g.Hold()
-			default:
-				send(conn, descError, fmt.Sprintf("operation can only be %s, %s, %s, %s, %s, %s",
-					opDown, opDrop, opLeft, opRight, opHold, opRotate))
-			}
-		case cmdPing:
-			// get ping from client
-			c := conn.GetConn()
-			if c == nil {
-				log.Debug("connection is nil, can not get remote address")
-				break
-			}
-			log.Debug("get ping from %s", c.RemoteAddr().String())
-		default:
-			log.Debug("get strange packet from client: %+v", data)
-			send(conn, descError, fmt.Sprintf("the command %s does not exist, are you hacker?", data.Cmd))
-		}
-	}
-}
-
-// quit a game
-func quit(tid, uid int, nickname string, isOb, is1p, isTournament bool) {
-	log.Debug("user %s quit the table %d", nickname, tid)
-	if err := authServerStub.Quit(tid, uid, isTournament); err != nil {
-		log.Warn("hprose error, can not quit user %s from table %d: %v", nickname, tid, err)
-	}
-	table := tables.GetTableById(tid)
-	if table == nil {
-		log.Debug("why the table %d is nil but also quit?", tid)
-		return
-	}
-	if !isOb {
-		if table.IsStart() {
-			if is1p {
-				gameOver(tid, false)
-				// table.GameoverChan <- types.Gameover1pQuit
-			} else {
-				gameOver(tid, true)
-				// table.GameoverChan <- types.Gameover2pQuit
-			}
-		}
-	}
-	table.Quit(uid)
-	if table.HasNoPlayer() {
-		tables.DelTable(tid)
-		return
-	}
-	var msg string
-	if isOb {
-		msg = fmt.Sprintf("观战者 %s 退出房间", nickname)
-	} else {
-		msg = fmt.Sprintf("玩家 %s 退出房间", nickname)
-	}
-	sendAll(descSysMsg, msg, table.GetAllConns()...)
-}
-
-// send to all
-func sendAll(desc string, val interface{}, conns ...*types.User) {
-	for _, c := range conns {
-		send(c, desc, val)
-	}
-}
-
-// inform the client side to refresh the table information
-func refreshTable(tid int, isTournament bool) {
-	table := tables.GetTableById(tid)
-	if table == nil {
-		return
-	}
-	if isTournament {
-		sendAll(descRefreshTournamentTableInfo, tid, table.GetAllConns()...)
-	} else {
-		sendAll(descRefreshNormalTableInfo, tid, table.GetAllConns()...)
-	}
-}
-
-// inform the auth server, some one is going to ob a game
-func obGame(tid, uid int, isTournament bool) error {
-	if isTournament {
-		return authServerStub.ObTournament(tid, uid)
-	}
-	return authServerStub.Join(tid, uid, true)
 }

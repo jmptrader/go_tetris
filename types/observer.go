@@ -49,9 +49,18 @@ func (this *obs) QuitAll() {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	for uid, u := range this.users {
-		u.Close()
+		if u != nil {
+			u.Close()
+		}
 		delete(this.users, uid)
 	}
+}
+
+// get user by id
+func (this *obs) GetUserById(uid int) *User {
+	this.mu.RLock()
+	defer this.mu.RUnlock()
+	return this.users[uid]
 }
 
 // get all observers uid
@@ -63,15 +72,20 @@ func (this *obs) GetAll() []int {
 	return us
 }
 
+// check if a user is in obs
+func (this *obs) IsUserExist(uid int) bool {
+	this.mu.RLock()
+	defer this.mu.RUnlock()
+	return this.users[uid] != nil
+}
+
 // get all observers' connection
 func (this *obs) GetConns() []*User {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
 	conns := make([]*User, 0)
 	for _, u := range this.users {
-		if u != nil {
-			conns = append(conns, u)
-		}
+		conns = append(conns, u)
 	}
 	return conns
 }

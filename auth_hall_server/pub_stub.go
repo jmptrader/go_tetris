@@ -463,7 +463,7 @@ func (pubStub) Create(title string, bet int, sessId string) int {
 		if ip == "" {
 			panic(errNoWorkingGameServer)
 		}
-		host := ip + ":" + gameServerSocketPort
+		host := constructHost(ip)
 		if err := clients.GetStub(ip).Create(id); err != nil {
 			panic(err)
 		}

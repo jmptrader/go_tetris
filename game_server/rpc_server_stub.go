@@ -158,11 +158,12 @@ func (stub) SetTournamentResult(tid, winnerUid int, isFinalRound bool) {
 // game server serve the game
 func serveGame(tid int) {
 	table := tables.GetTableById(tid)
-	if table == nil {
-		log.Critical("serve game but table is nil")
-		return
-	}
 	for {
+		if table == nil {
+			log.Critical("serve game but table is nil")
+			return
+		}
+
 		select {
 
 		// table timer

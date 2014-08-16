@@ -234,19 +234,15 @@ func (ts Tables) MarshalJSON() ([]byte, error) {
 }
 
 // get all connections in all tables
-// func (ts *Tables) GetAllConnsInAllTables() []*net.TCPConn {
-// 	ts.mu.RLock()
-// 	defer ts.mu.RUnlock()
-// 	conns := make([]*net.TCPConn, 0)
-// 	for _, table := range ts.Tables {
-// 		for _, c := range table.GetAllConns() {
-// 			if c != nil {
-// 				conns = append(conns, c)
-// 			}
-// 		}
-// 	}
-// 	return conns
-// }
+func (ts *Tables) GetAllConnsInAllTables() []*User {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
+	conns := make([]*User, 0)
+	for _, table := range ts.Tables {
+		conns = append(conns, table.GetAllConns()...)
+	}
+	return conns
+}
 
 // check if the Table exist
 func (ts *Tables) IsTableExist(id int) bool {
@@ -578,15 +574,11 @@ func (t *Table) Quit(uid int) {
 	}
 	switch uid {
 	case t._1p.GetUid():
-		if u := t._1p; u != nil {
-			u.Close()
-		}
+		t._1p.Close()
 		t._1p = nil
 		t.ready1p = false
 	case t._2p.GetUid():
-		if u := t._2p; u != nil {
-			u.Close()
-		}
+		t._2p.Close()
 		t._2p = nil
 		t.ready2p = false
 	default:
@@ -659,6 +651,23 @@ func (t *Table) Get2pUid() int {
 	return t._2p.GetUid()
 }
 
+// get user by uid
+func (t *Table) GetUserById(uid int) *User {
+	if uid < 0 {
+		return nil
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	switch uid {
+	case t._1p.GetUid():
+		return t._1p
+	case t._2p.GetUid():
+		return t._2p
+	default:
+		return t.obs.GetUserById(uid)
+	}
+}
+
 // get all conns
 func (t *Table) GetAllConns() []*User {
 	conns := t.GetObConns()
@@ -712,4 +721,14 @@ func (t *Table) GetGame2p() *tetris.Game {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.g2p
+}
+
+// check if a user is in the table
+func (t *Table) IsUserExist(uid int) bool {
+	if uid < 0 {
+		return false
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t._1p.GetUid() == uid || t._2p.GetUid() == uid || t.obs.IsUserExist(uid)
 }

@@ -61,7 +61,8 @@ func initConf() {
 		panic("can not parse email smtp port: " + err.Error())
 	}
 
-	utils.CheckEmptyConf(btcUser, btcPass, btcServer, gameServerRpcPort, gameServerSocketPort, tournamentPort,
+	utils.CheckEmptyConf(btcUser, btcPass, btcServer,
+		gameServerRpcPort, gameServerSocketPort, tournamentPort,
 		dbUser, dbPass, dbProtocol, dbSockAddress, dbName,
 		logPath, privRpcPort, pubRpcPort, privKeyString, tournamentKeyString,
 		emailId, emailFrom, emailHost, emailPass, emailUser, emailSMTPPort,

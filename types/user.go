@@ -3,12 +3,11 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"reflect"
 	"sync"
 	"time"
-
-	"github.com/gogames/go_tetris/utils"
 )
 
 var levels = map[int]string{}
@@ -319,21 +318,21 @@ func canUserFieldUpdate(field string) bool {
 
 // fixed tag means it is not going to update the field by reflect method
 type User struct {
-	Uid      int `fixed:"true"`
-	Avatar   []byte
-	Email    string `fixed:"true"`
-	Password string
-	Nickname string `fixed:"true"`
-	Energy   int
-	Level    int
-	Win      int
-	Lose     int
-	Addr     string `fixed:"true"`
-	Balance  int
-	Freezed  int
-	Updated  int
-	conn     *net.TCPConn
-	mu       sync.Mutex
+	Uid                 int `fixed:"true"`
+	Avatar              []byte
+	Email               string `fixed:"true"`
+	Password            string
+	Nickname            string `fixed:"true"`
+	Energy              int
+	Level               int
+	Win                 int
+	Lose                int
+	Addr                string `fixed:"true"`
+	Balance             int
+	Freezed             int
+	Updated             int
+	readConn, writeConn *net.TCPConn
+	mu                  sync.Mutex
 }
 
 func (u User) String() string {
@@ -352,7 +351,8 @@ func NewUser(uid int, email, password, nickname, addr string) *User {
 	}
 }
 
-var ErrNilConn = fmt.Errorf("the tcp connection is nil")
+var ErrNilReadConn = fmt.Errorf("the read tcp connection is nil")
+var ErrNilWriteConn = fmt.Errorf("the write tcp connection is nil")
 
 // get uid
 func (u *User) GetUid() int {
@@ -403,65 +403,83 @@ func (u *User) Update(upts ...UpdateInterface) error {
 	return nil
 }
 
-// set tcp connection
-func (this *User) SetConn(conn *net.TCPConn) {
+// set read tcp connection
+func (this *User) SetReadConn(conn *net.TCPConn) {
+	if this == nil {
+		log.Println("the user is nil, can not set read connection")
+		return
+	}
 	this.mu.Lock()
 	defer this.mu.Unlock()
-	this.conn = conn
+	this.readConn = conn
 }
 
-// get tcp connection
-func (this *User) GetConn() *net.TCPConn {
+// set write tcp connection
+func (this *User) SetWriteConn(conn *net.TCPConn) {
 	if this == nil {
+		log.Println("the user is nil, can not set write connection")
+		return
+	}
+	this.mu.Lock()
+	defer this.mu.Unlock()
+	this.writeConn = conn
+}
+
+// get read tcp connection
+func (this *User) GetReadConn() *net.TCPConn {
+	if this == nil {
+		log.Println("the user is nil, can not get read connection")
 		return nil
 	}
 	this.mu.Lock()
 	defer this.mu.Unlock()
-	return this.conn
+	return this.readConn
 }
 
-// read
-func (this *User) Read() ([]byte, error) {
-	c := this.GetConn()
-	if c == nil {
-		return nil, ErrNilConn
+// get write tcp connection
+func (this *User) GetWriteConn() *net.TCPConn {
+	if this == nil {
+		log.Println("the user is nil, can not get write connection")
+		return nil
 	}
-	return utils.ReadDataOverTcp(c)
-}
-
-// write
-func (this *User) Write(data []byte) error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
-	c := this.conn
-	if c == nil {
-		return ErrNilConn
-	}
-	return utils.SendDataOverTcp(c, data)
+	return this.writeConn
 }
 
 // set read timeout in secs
 func (this *User) SetReadTimeoutInSecs(n int) error {
-	if c := this.GetConn(); c != nil {
+	if c := this.GetReadConn(); c != nil {
 		return c.SetReadDeadline(time.Now().Add(time.Duration(n) * time.Second))
 	}
-	return ErrNilConn
+	return ErrNilReadConn
 }
 
 // set write timeout in secs
 func (this *User) SetWriteTimeoutInSecs(n int) error {
-	if c := this.GetConn(); c != nil {
+	if c := this.GetWriteConn(); c != nil {
 		return c.SetWriteDeadline(time.Now().Add(time.Duration(n) * time.Second))
 	}
-	return ErrNilConn
+	return ErrNilWriteConn
 }
 
 // close
 func (this *User) Close() error {
-	if c := this.GetConn(); c != nil {
-		return c.Close()
+	var err1, err2 error
+	if c := this.GetReadConn(); c != nil {
+		err1 = c.Close()
+	} else {
+		err1 = ErrNilReadConn
 	}
-	return ErrNilConn
+	if c := this.GetReadConn(); c != nil {
+		err2 = c.Close()
+	} else {
+		err2 = ErrNilWriteConn
+	}
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("%v\n%v", err1, err2)
+	}
+	return nil
 }
 
 // marshal the user
