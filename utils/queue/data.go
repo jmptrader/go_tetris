@@ -86,6 +86,17 @@ type tableDatas struct {
 
 func NewTableDatas() *tableDatas { return &tableDatas{datas: make(map[int]*datas)} }
 
+// debug
+func (tds tableDatas) PrintForDebug() string {
+	tds.mu.RLock()
+	defer tds.mu.RUnlock()
+	str := "Table datas now contains the following information:\n"
+	for tid, tinfo := range tds.datas {
+		str += fmt.Sprintf("	tableId: %d -> length of data is %d\n", tid, tinfo.length())
+	}
+	return str
+}
+
 // get table data
 func (tds tableDatas) getTableData(tableId int) *datas {
 	tds.mu.RLock()
