@@ -133,7 +133,7 @@ func (pubStub) Quit(sessionId string) {
 func (pubStub) Ping(sessionId string) {}
 
 // get data
-func (pubStub) GetData(index int, sessionId string) []interface{} {
+func (pubStub) GetData(index int, sessionId string) (res []interface{}, newIndex int) {
 	tid := getTidFromSession(sessionId)
 	var belong = queue.BelongToObs
 	if !getIsObFromSession(sessionId) {
@@ -146,10 +146,11 @@ func (pubStub) GetData(index int, sessionId string) []interface{} {
 	var count = 100
 	for count > 0 {
 		count--
-		if res := tableDatas.GetData(tid, index, belong); res != nil {
-			return res
+		if res = tableDatas.GetData(tid, index, belong); res != nil {
+			newIndex = tableDatas.Index(tid)
+			return
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	return nil
+	panic("no new data")
 }

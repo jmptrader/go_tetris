@@ -29,6 +29,7 @@ type gStub struct {
 func joinGameServer(host string, token string) {
 	url := fmt.Sprintf("http://%s/", host)
 	fmt.Println("connected to rpc server:", url)
+	gClient = hprose.NewHttpClient(url)
 	gClient.SetUri(url)
 	gClient.UseService(&gS)
 
