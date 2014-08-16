@@ -109,7 +109,9 @@ func NewGame(height, width, numOfNextPieces, interval int) (*Game, error) {
 func (g *Game) init() {
 	for {
 		g.timer.Wait()
+		g.Lock()
 		g.check(true, false)
+		g.Unlock()
 	}
 }
 
@@ -124,9 +126,6 @@ func (g *Game) KoOpponent() {
 // 2. should drop down to the bottom
 // 3. should reset the timer
 func (g *Game) check(moveDown, dropDown bool) {
-	g.Lock()
-	defer g.Unlock()
-
 	var genNewPiece bool
 	switch {
 	case moveDown:
@@ -198,75 +197,71 @@ func (g *Game) GetScore() int {
 
 // move down
 func (g *Game) MoveDown() {
+	g.Lock()
+	defer g.Unlock()
 	g.check(true, false)
 }
 
 // drop down
 func (g *Game) DropDown() {
+	g.Lock()
+	defer g.Unlock()
 	g.check(false, true)
 }
 
 // move left
 func (g *Game) MoveLeft() {
-	func() {
-		g.Lock()
-		defer g.Unlock()
-		if g.mainZone.canBlockMoveLeft(g.activePiece.block) {
-			g.activePiece.block = g.activePiece.block.moveLeft()
-		}
-	}()
+	g.Lock()
+	defer g.Unlock()
+	if g.mainZone.canBlockMoveLeft(g.activePiece.block) {
+		g.activePiece.block = g.activePiece.block.moveLeft()
+	}
 	g.check(false, false)
 }
 
 // move right
 func (g *Game) MoveRight() {
-	func() {
-		g.Lock()
-		defer g.Unlock()
-		if g.mainZone.canBlockMoveRight(g.activePiece.block) {
-			g.activePiece.block = g.activePiece.block.moveRight()
-		}
-	}()
+	g.Lock()
+	defer g.Unlock()
+	if g.mainZone.canBlockMoveRight(g.activePiece.block) {
+		g.activePiece.block = g.activePiece.block.moveRight()
+	}
 	g.check(false, false)
 }
 
 // rotate
 func (g *Game) Rotate() {
-	func() {
-		g.Lock()
-		defer g.Unlock()
-		if b, can := g.mainZone.canBlockRotate(g.activePiece.block); can {
-			g.activePiece.block = b
-		}
-	}()
+	g.Lock()
+	defer g.Unlock()
+	if b, can := g.mainZone.canBlockRotate(g.activePiece.block); can {
+		g.activePiece.block = b
+	}
 	g.check(false, false)
 }
 
 // hold
 func (g *Game) Hold() {
-	func() {
-		g.Lock()
-		defer g.Unlock()
-		if !g.canHold() {
-			return
-		}
-		g.holded = true
-		if g.holdPiece == nil {
-			g.holdPiece, g.activePiece = g.activePiece, g.nextPieces.getOne(newPiece(g.mainZone.width()/2-2))
-			return
-		}
+	g.Lock()
+	defer g.Unlock()
+	if !g.canHold() {
+		return
+	}
+	g.holded = true
+	if g.holdPiece == nil {
+		g.holdPiece, g.activePiece = g.activePiece, g.nextPieces.getOne(newPiece(g.mainZone.width()/2-2))
+	} else {
 		g.activePiece, g.holdPiece = g.holdPiece, g.activePiece
 		g.activePiece.block = g.activePiece.resPosition
-		g.send(DescHoldedPiece, g.holdPiece)
-	}()
+	}
+	g.send(DescHoldedPiece, g.holdPiece)
 	g.check(false, false)
 }
 
 // being attacked, return true if being KO
 func (g *Game) BeingAttacked(n int) {
+	g.Lock()
+	defer g.Unlock()
 	if ko := func() bool {
-		g.Lock()
-		defer g.Unlock()
 		if g.mainZone.canHoldStoneLines(n) {
 			g.mainZone.addStoneLinesToZone(n)
 			if !g.mainZone.canPutBlockOnZone(g.activePiece.block) {
