@@ -28,10 +28,13 @@ func newNumConn(max int) *numConn { return &numConn{maxConn: uint(max), currConn
 
 func (nc *numConn) Add() { nc.currConn++ }
 
-func (nc *numConn) Release() { nc.currConn-- }
+func (nc *numConn) Release() {
+	if nc.currConn > 0 {
+		nc.currConn--
+	}
+}
 
 func (nc numConn) Load() float64 {
-	fmt.Printf("current connection %d and max connection %d\n", nc.currConn, nc.maxConn)
 	return float64(nc.currConn) / float64(nc.maxConn)
 }
 
@@ -166,7 +169,6 @@ func (gsr *GameServersRpc) ReleaseConn(ip string) {
 
 // best game server
 func (gsr *GameServersRpc) BestServer() (ip string) {
-	fmt.Printf("finding best server\n")
 	gsr.gsncMu.RLock()
 	defer gsr.gsncMu.RUnlock()
 	var usage float64 = 2
@@ -177,10 +179,8 @@ func (gsr *GameServersRpc) BestServer() (ip string) {
 			defer gsr.gsstatMu.RUnlock()
 			return gsr.gameServerStatus[i]
 		}() {
-			fmt.Printf("game server %v is deactivated\n", i)
 			continue
 		}
-		fmt.Printf("the game server load is %v\n", v.Load())
 		if l := v.Load(); l < usage {
 			usage = l
 			ip = i
