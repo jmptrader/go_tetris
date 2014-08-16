@@ -224,5 +224,5 @@ func join() {
 		return
 	}
 	fmt.Println("get token, connect to socket server...", token)
-	handleConn(gsHost, token)
+	joinGameServer(gsHost, token)
 }
