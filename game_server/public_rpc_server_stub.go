@@ -5,9 +5,11 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gogames/go_tetris/types"
 	"github.com/gogames/go_tetris/utils"
+	"github.com/gogames/go_tetris/utils/queue"
 )
 
 const (
@@ -131,6 +133,23 @@ func (pubStub) Quit(sessionId string) {
 func (pubStub) Ping(sessionId string) {}
 
 // get data
-func (pubStub) GetData(index int, sessionId string) {
-
+func (pubStub) GetData(index int, sessionId string) []interface{} {
+	tid := getTidFromSession(sessionId)
+	var belong = queue.BelongToObs
+	if !getIsObFromSession(sessionId) {
+		if getIs1pFromSession(sessionId) {
+			belong = queue.BelongTo1p
+		} else {
+			belong = queue.BelongTo2p
+		}
+	}
+	var count = 100
+	for count > 0 {
+		count--
+		if res := tableDatas.GetData(tid, index, belong); res != nil {
+			return res
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return nil
 }

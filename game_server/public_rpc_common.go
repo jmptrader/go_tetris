@@ -62,6 +62,7 @@ func handleQuit(tid, uid int, nickname string, isOb, is1p, isTournament bool) {
 	table.Quit(uid)
 	if table.HasNoPlayer() {
 		tables.DelTable(tid)
+		tableDatas.DeleteTable(tid)
 		return
 	}
 	var msg string

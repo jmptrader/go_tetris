@@ -61,7 +61,15 @@ func (stub) Start(tid int) {
 
 // create new table
 func (stub) Create(tid int) error {
-	return tables.NewTable(tid, "", "", -1)
+	if err := tables.NewTable(tid, "", "", -1); err != nil {
+		log.Debug("can not create new table: %v", err)
+		return err
+	}
+	if err := tableDatas.NewTableData(tid); err != nil {
+		log.Debug("can not create new table data: %v", err)
+		return err
+	}
+	return nil
 }
 
 // delete a table
