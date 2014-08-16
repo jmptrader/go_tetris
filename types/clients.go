@@ -163,6 +163,7 @@ func (gsr *GameServersRpc) ReleaseConn(ip string) {
 
 // best game server
 func (gsr *GameServersRpc) BestServer() (ip string) {
+	fmt.Printf("finding best server\n")
 	gsr.gsncMu.RLock()
 	defer gsr.gsncMu.RUnlock()
 	var usage float64 = 2
@@ -173,8 +174,10 @@ func (gsr *GameServersRpc) BestServer() (ip string) {
 			defer gsr.gsstatMu.RUnlock()
 			return gsr.gameServerStatus[i]
 		}() {
+			fmt.Printf("game server %v is deactivated\n", i)
 			continue
 		}
+		fmt.Printf("the game server load is %v\n", v.Load())
 		if l := v.Load(); l < usage {
 			usage = l
 			ip = i
