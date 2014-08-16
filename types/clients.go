@@ -30,7 +30,10 @@ func (nc *numConn) Add() { nc.currConn++ }
 
 func (nc *numConn) Release() { nc.currConn-- }
 
-func (nc numConn) Load() float64 { return float64(nc.currConn) / float64(nc.maxConn) }
+func (nc numConn) Load() float64 {
+	fmt.Printf("current connection %d and max connection %d\n", nc.currConn, nc.maxConn)
+	return float64(nc.currConn) / float64(nc.maxConn)
+}
 
 func (nc numConn) CurrConns() int { return int(nc.currConn) }
 
