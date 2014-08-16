@@ -14,9 +14,12 @@ const (
 
 // session store
 type sessionStore struct {
-	sess           map[string]*session // sessionId -> *session
-	expireInSecond int64               // expire in seconds, default 1800 seconds
-	mu             sync.RWMutex
+	sess              map[string]*session // sessionId -> *session
+	expireInSecond    int64               // expire in seconds, default 1800 seconds
+	mu                sync.RWMutex
+	garbageChanBuffer int
+	enableGarbageChan bool
+	GarbageSession    chan *session
 }
 
 func NewSessionStore(expires ...int64) *sessionStore {
@@ -31,6 +34,16 @@ func NewSessionStore(expires ...int64) *sessionStore {
 		expireInSecond: expire,
 	}
 	return ss.init()
+}
+
+func (ss *sessionStore) EnableGarbageChan(buffer int) {
+	ss.mu.Lock()
+	defer ss.mu.Unlock()
+	if buffer <= 0 || ss.enableGarbageChan {
+		return
+	}
+	ss.enableGarbageChan = true
+	ss.GarbageSession = make(chan *session, buffer)
 }
 
 // session store initialization
@@ -99,6 +112,9 @@ func (ss *sessionStore) delSession(sessionIds ...string) {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
 	for _, sessionId := range sessionIds {
+		if ss.enableGarbageChan {
+			ss.GarbageSession <- ss.sess[sessionId]
+		}
 		delete(ss.sess, sessionId)
 	}
 }
@@ -165,7 +181,7 @@ func (ss *sessionStore) GetSession(key string, sessId string) interface{} {
 	}
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
-	return ss.sess[sessId].get(key)
+	return ss.sess[sessId].Get(key)
 }
 
 // String for testing
@@ -203,7 +219,7 @@ func (s *session) set(key string, val interface{}) {
 	s.updated = time.Now().Unix()
 }
 
-func (s *session) get(key string) interface{} {
+func (s *session) Get(key string) interface{} {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.vals[key]

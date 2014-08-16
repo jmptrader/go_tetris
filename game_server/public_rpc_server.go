@@ -13,7 +13,6 @@ import (
 )
 
 var pubHttpServer = hprose.NewHttpService()
-var session = utils.NewSessionStore(10)
 
 const sessKeyPing = "ping"
 
