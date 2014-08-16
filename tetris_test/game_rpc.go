@@ -23,7 +23,7 @@ type gStub struct {
 	Operate       func(string, string) error
 	Quit          func(string) error
 	Ping          func(string) error
-	GetData       func(int, string) ([]string, error)
+	GetData       func(int, string) ([]string, int, error)
 }
 
 func joinGameServer(host string, token string) {
@@ -75,12 +75,13 @@ func getData() {
 			fmt.Printf("stop getting data\n")
 			return
 		}
-		vals, err := gS.GetData(gIndex, gSessionId)
+		vals, i, err := gS.GetData(gIndex, gSessionId)
 		if err != nil {
 			fmt.Printf("can not get data: %v\n", err)
 			active = false
 			return
 		}
+		gIndex = i
 		for _, v := range vals {
 			fmt.Printf("get data %s\n", v)
 		}
