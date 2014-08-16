@@ -11,6 +11,7 @@ import (
 	"github.com/gogames/go_tetris/timer"
 	"github.com/gogames/go_tetris/types"
 	"github.com/gogames/go_tetris/utils"
+	"github.com/gogames/go_tetris/utils/queue"
 )
 
 // auth server inform game server to become inactive
@@ -21,15 +22,15 @@ func (stub) Deactivate() {
 }
 
 // count down after a game start
-func countDown(table *types.Table) {
+func countDown(tableId int) {
 	t := timer.NewTimer(1000)
 	t.Start()
 	for i := 3; i > 0; i-- {
-		sendAll(descStart, i, table.GetAllConns()...)
+		tableDatas.SetData(tableId, newResponse(descStart, i).toJson(), queue.BelongToAll)
 		t.Wait()
 	}
 	t.Stop()
-	sendAll(descStart, 0, table.GetAllConns()...)
+	tableDatas.SetData(tableId, newResponse(descStart, 0).toJson(), queue.BelongToAll)
 }
 
 // auth server inform game server to start a table
@@ -45,7 +46,7 @@ func (stub) Start(tid int) {
 			log.Critical("the table is already start, why start again?")
 			panic("table is already started, why start again?")
 		}
-		countDown(table)
+		countDown(tid)
 		table.StartGame()
 		if !table.IsStart() {
 			log.Debug("why the game is not start?")
@@ -72,9 +73,9 @@ func (stub) Delete(tid int) error {
 		log.Critical("%v", err)
 		return err
 	}
-	sendAll(descError, "桌子长时间不开始游戏, 或者由于其他原因, 桌子已经被取消.", t.GetAllConns()...)
-	closeConn(t.GetAllConns()...)
+	tableDatas.SetData(tid, newResponse(descError, "桌子长时间不开始游戏, 或者由于其他原因, 桌子已经被取消.").toJson(), queue.BelongToAll)
 	tables.DelTable(tid)
+	tableDatas.DeleteTable(tid)
 	return nil
 }
 
@@ -102,14 +103,14 @@ func (stub) SetNormalGameResult(tid, winnerUid, bet int) {
 	switch winnerUid {
 	case table.Get1pUid():
 		log.Debug("winner is 1p, sending win, lose, result msg via tcp")
-		send(table.Get1pConn(), descGameWin, construct(true, bet))
-		send(table.Get2pConn(), descGameLose, construct(false, bet))
-		sendAll(descGameResult, "1P 赢得本局游戏", table.GetObConns()...)
+		tableDatas.SetData(tid, newResponse(descGameWin, construct(true, bet)).toJson(), queue.BelongTo1p)
+		tableDatas.SetData(tid, newResponse(descGameLose, construct(false, bet)).toJson(), queue.BelongTo2p)
+		tableDatas.SetData(tid, newResponse(descGameResult, "1P 赢得本局游戏").toJson(), queue.BelongToObs)
 	case table.Get2pUid():
 		log.Debug("winner is 2p, sending win, lose, result msg via tcp")
-		send(table.Get2pConn(), descGameWin, construct(true, bet))
-		send(table.Get1pConn(), descGameLose, construct(false, bet))
-		sendAll(descGameResult, "2P 赢得本局游戏", table.GetObConns()...)
+		tableDatas.SetData(tid, newResponse(descGameWin, construct(true, bet)).toJson(), queue.BelongTo2p)
+		tableDatas.SetData(tid, newResponse(descGameLose, construct(false, bet)).toJson(), queue.BelongTo1p)
+		tableDatas.SetData(tid, newResponse(descGameResult, "2P 赢得本局游戏").toJson(), queue.BelongToObs)
 	default:
 		log.Debug("the winner uid is neither 1p nor 2p, who is it: %v", winnerUid)
 	}
@@ -118,42 +119,42 @@ func (stub) SetNormalGameResult(tid, winnerUid, bet int) {
 }
 
 // TODO: not confirmed yet
-func (stub) SetTournamentResult(tid, winnerUid int, isFinalRound bool) {
-	construct := func(win, isFinalRound bool) (str string) {
-		if win {
-			if isFinalRound {
-				str = "恭喜你获得冠军!"
-			} else {
-				str = "恭喜你获得进入下一轮游戏的资格!"
-			}
-		} else if isFinalRound {
-			str = "恭喜你获得亚军!"
-		} else {
-			str = "不要气馁, 再接再厉!"
-		}
-		return
-	}
-	table := tables.GetTableById(tid)
-	if table == nil {
-		log.Critical("set tournament result but table is nil")
-		return
-	}
-	switch winnerUid {
-	case table.Get1pUid():
-		send(table.Get1pConn(), descGameWin, construct(true, isFinalRound))
-		send(table.Get2pConn(), descGameLose, construct(false, isFinalRound))
-		closeConn(table.Get2pConn())
-		sendAll(descGameResult, "1P 赢得本局游戏", table.GetObConns()...)
-	case table.Get2pUid():
-		send(table.Get2pConn(), descGameWin, construct(true, isFinalRound))
-		send(table.Get1pConn(), descGameLose, construct(false, isFinalRound))
-		closeConn(table.Get1pConn())
-		sendAll(descGameResult, "2P 赢得本局游戏", table.GetObConns()...)
-	default:
-	}
-	table.ResetTable()
-	table.QuitAllObs()
-}
+// func (stub) SetTournamentResult(tid, winnerUid int, isFinalRound bool) {
+// 	construct := func(win, isFinalRound bool) (str string) {
+// 		if win {
+// 			if isFinalRound {
+// 				str = "恭喜你获得冠军!"
+// 			} else {
+// 				str = "恭喜你获得进入下一轮游戏的资格!"
+// 			}
+// 		} else if isFinalRound {
+// 			str = "恭喜你获得亚军!"
+// 		} else {
+// 			str = "不要气馁, 再接再厉!"
+// 		}
+// 		return
+// 	}
+// 	table := tables.GetTableById(tid)
+// 	if table == nil {
+// 		log.Critical("set tournament result but table is nil")
+// 		return
+// 	}
+// 	switch winnerUid {
+// 	case table.Get1pUid():
+// 		tableDatas.SetData(tid, newResponse(descGameWin, construct(true, isFinalRound)).toJson(), queue.BelongTo1p)
+// 		tableDatas.SetData(tid, newResponse(descGameLose, construct(false, isFinalRound)).toJson(), queue.BelongTo2p)
+// 		closeConn(table.Get2pConn())
+// 		sendAll(descGameResult, "1P 赢得本局游戏", table.GetObConns()...)
+// 	case table.Get2pUid():
+// 		send(table.Get2pConn(), descGameWin, construct(true, isFinalRound))
+// 		send(table.Get1pConn(), descGameLose, construct(false, isFinalRound))
+// 		closeConn(table.Get1pConn())
+// 		sendAll(descGameResult, "2P 赢得本局游戏", table.GetObConns()...)
+// 	default:
+// 	}
+// 	table.ResetTable()
+// 	table.QuitAllObs()
+// }
 
 // game server serve the game
 func serveGame(tid int) {
@@ -169,7 +170,7 @@ func serveGame(tid int) {
 		// table timer
 		case remain := <-table.RemainedSecondsChan:
 			log.Debug("remain time in seconds: %d", remain)
-			sendAll(descTimer, remain, table.GetAllConns()...)
+			tableDatas.SetData(tid, newResponse(descTimer, remain).toJson(), queue.BelongToAll)
 
 		// game over
 		case gameover := <-table.GameoverChan:
@@ -193,14 +194,14 @@ func serveGame(tid int) {
 			switch msg.Description {
 			// ko, audio only send to the player himself
 			case tetris.DescAudio, tetris.DescKo:
-				sendAll(desc1p, msg, table.Get1pConn())
+				tableDatas.SetData(tid, newResponse(desc1p, msg).toJson(), queue.BelongTo1p)
 			// clear, combo, attack only sends to the player and obs
 			case tetris.DescClear, tetris.DescCombo, tetris.DescAttack:
-				sendAll(desc1p, msg, table.Get1pConn())
-				sendAll(desc1p, msg, table.GetObConns()...)
+				tableDatas.SetData(tid, newResponse(desc1p, msg).toJson(), queue.BelongTo1p)
+				tableDatas.SetData(tid, newResponse(desc1p, msg).toJson(), queue.BelongToObs)
 			// the others send to all
 			default:
-				sendAll(desc1p, msg, table.GetAllConns()...)
+				tableDatas.SetData(tid, newResponse(desc1p, msg).toJson(), queue.BelongToAll)
 			}
 
 		case beingKo := <-table.GetGame1p().BeingKOChan:
@@ -208,8 +209,8 @@ func serveGame(tid int) {
 			if beingKo {
 				table.GetGame2p().KoOpponent()
 				ko := table.GetGame2p().GetKo()
-				sendAll(desc1p, tetris.NewMessage(tetris.DescBeingKo, ko), table.Get1pConn())
-				sendAll(desc1p, tetris.NewMessage(tetris.DescBeingKo, ko), table.GetObConns()...)
+				tableDatas.SetData(tid, newResponse(desc1p, tetris.NewMessage(tetris.DescBeingKo, ko)).toJson(), queue.BelongTo1p)
+				tableDatas.SetData(tid, newResponse(desc1p, tetris.NewMessage(tetris.DescBeingKo, ko)).toJson(), queue.BelongToObs)
 				log.Debug("number of 2p ko: %d", ko)
 				if ko >= 5 {
 					log.Debug("send true to 1p gameover chan")
@@ -236,12 +237,12 @@ func serveGame(tid int) {
 			// ko, audio only send to the player himself
 			switch msg.Description {
 			case tetris.DescAudio, tetris.DescKo:
-				sendAll(desc2p, msg, table.Get2pConn())
+				tableDatas.SetData(tid, newResponse(desc2p, msg).toJson(), queue.BelongTo2p)
 			case tetris.DescClear, tetris.DescCombo, tetris.DescAttack:
-				sendAll(desc2p, msg, table.Get2pConn())
-				sendAll(desc2p, msg, table.GetObConns()...)
+				tableDatas.SetData(tid, newResponse(desc2p, msg).toJson(), queue.BelongTo2p)
+				tableDatas.SetData(tid, newResponse(desc2p, msg).toJson(), queue.BelongToObs)
 			default:
-				sendAll(desc2p, msg, table.GetAllConns()...)
+				tableDatas.SetData(tid, newResponse(desc2p, msg).toJson(), queue.BelongToAll)
 			}
 
 		// attack 1p
@@ -262,8 +263,10 @@ func serveGame(tid int) {
 			if beingKo {
 				table.GetGame1p().KoOpponent()
 				ko := table.GetGame1p().GetKo()
-				sendAll(desc2p, tetris.NewMessage(tetris.DescBeingKo, ko), table.Get2pConn())
-				sendAll(desc2p, tetris.NewMessage(tetris.DescBeingKo, ko), table.GetObConns()...)
+				tableDatas.SetData(tid, newResponse(desc2p, tetris.NewMessage(tetris.DescBeingKo, ko)).toJson(),
+					queue.BelongTo2p)
+				tableDatas.SetData(tid, newResponse(desc2p, tetris.NewMessage(tetris.DescBeingKo, ko)).toJson(),
+					queue.BelongToObs)
 				log.Debug("number of 1p ko: %d", ko)
 				if ko >= 5 {
 					log.Debug("send true to 2p gameover chan")

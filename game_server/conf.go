@@ -12,14 +12,14 @@ import (
 var (
 	conf config.ConfigContainer
 
-	tokenEncryptKey    string
-	logPath            string
-	authServerIp       string
-	authServerRpcPort  string
-	gameServerRpcPort  string
-	gameServerSockPort string
-	maxConn            int
-	privKey            []byte
+	tokenEncryptKey      string
+	logPath              string
+	authServerIp         string
+	authServerRpcPort    string
+	gameServerRpcPort    string
+	gamePubServerRpcPort string
+	maxConn              int
+	privKey              []byte
 )
 
 func initConf() {
@@ -35,7 +35,7 @@ func initConf() {
 	authServerIp = conf.String("authServerIp")
 	authServerRpcPort = conf.String("authServerRpcPort")
 	gameServerRpcPort = conf.String("gameServerRpcPort")
-	gameServerSockPort = conf.String("gameServerSockPort")
+	gamePubServerRpcPort = conf.String("gamePubServerRpcPort")
 	privKeyString := conf.String("privKey")
 	maxConn, err = conf.Int("maxConn")
 	if err != nil {
@@ -45,7 +45,7 @@ func initConf() {
 	}
 
 	utils.CheckEmptyConf(tokenEncryptKey, logPath, authServerIp,
-		authServerRpcPort, gameServerRpcPort, gameServerSockPort, maxConn)
+		authServerRpcPort, gameServerRpcPort, gamePubServerRpcPort, maxConn)
 
 	utils.SetTokenKey([]byte(tokenEncryptKey))
 	privKey = []byte(privKeyString)

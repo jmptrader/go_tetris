@@ -26,7 +26,7 @@ func newData(d interface{}, belong DataBelong) data {
 	return data{belong: belong, data: d}
 }
 
-func (d data) isBelongTo(belong DataBelong) bool { return d.belong == belong }
+func (d data) isBelongTo(belong DataBelong) bool { return d.belong == BelongToAll || d.belong == belong }
 
 // datas
 type datas struct {
@@ -43,7 +43,7 @@ func newDatas() *datas {
 // length of data
 func (d *datas) length() int {
 	if d == nil {
-		return 0
+		return -1
 	}
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -102,6 +102,11 @@ func (tds tableDatas) getTableData(tableId int) *datas {
 	tds.mu.RLock()
 	defer tds.mu.RUnlock()
 	return tds.datas[tableId]
+}
+
+// next index
+func (tds tableDatas) Index(tableId int) int {
+	return tds.getTableData(tableId).length()
 }
 
 // is table data exist

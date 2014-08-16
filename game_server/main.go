@@ -6,10 +6,10 @@ func init() {
 	initLogger()
 	initRpcClient()
 	initServerStatus()
-	initPolicyFileSocketServer()
-	initSocketServer()
 	initRpcServer()
+	initPubRpcServer()
 	initTables()
+	initTableDatas()
 	initGraceful()
 }
 

@@ -63,7 +63,7 @@ func deactivateServer(positive bool) {
 				for _, uid := range t.GetObservers() {
 					authServerStub.Quit(tid, uid, isTournament)
 				}
-				closeConn(t.GetAllConns()...)
+				tableDatas.DeleteTable(tid)
 				tables.ReleaseExpireTable(tid)
 			}
 		}
