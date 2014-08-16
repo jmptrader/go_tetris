@@ -11,7 +11,7 @@ import (
 var (
 	conf                                                config.ConfigContainer
 	btcUser, btcPass, btcServer                         string
-	gameServerRpcPort, gameServerSocketPort             string
+	gameServerRpcPort, gamePubServerPort                string
 	dsn                                                 string
 	logPath                                             string
 	privRpcPort, pubRpcPort, tournamentPort             string
@@ -34,7 +34,7 @@ func initConf() {
 	btcPass = conf.String("btcPass")
 	btcServer = conf.String("btcServer")
 	gameServerRpcPort = conf.String("gameServerRpcPort")
-	gameServerSocketPort = conf.String("gameServerSocketPort")
+	gamePubServerPort = conf.String("gamePubServerRpcPort")
 	dbUser := conf.String("dbUser")
 	dbPass := conf.String("dbPass")
 	dbProtocol := conf.String("dbProtocol")
@@ -62,7 +62,7 @@ func initConf() {
 	}
 
 	utils.CheckEmptyConf(btcUser, btcPass, btcServer,
-		gameServerRpcPort, gameServerSocketPort, tournamentPort,
+		gameServerRpcPort, gamePubServerPort, tournamentPort,
 		dbUser, dbPass, dbProtocol, dbSockAddress, dbName,
 		logPath, privRpcPort, pubRpcPort, privKeyString, tournamentKeyString,
 		emailId, emailFrom, emailHost, emailPass, emailUser, emailSMTPPort,

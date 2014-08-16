@@ -16,7 +16,7 @@ var hostFormat string
 func constructHost(ip string) string { return fmt.Sprintf(hostFormat, ip) }
 
 func initHall() {
-	hostFormat = `%s:` + gameServerSocketPort
+	hostFormat = `%s:` + gamePubServerPort
 	log.Debug("the host format is %s", hostFormat)
 
 	go releaseExpires()
