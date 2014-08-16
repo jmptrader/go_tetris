@@ -41,7 +41,7 @@ const (
 
 func serveWrite(conn *net.TCPConn, token string) {
 	// parse the token, see what to do next
-	uid, _, _, _, _, tid, err := utils.ParseToken(token)
+	uid, _, _, _, isTournament, tid, err := utils.ParseToken(token)
 	if err != nil {
 		log.Debug("can not parse the token: %v", err)
 		closeConnDefault(conn)
@@ -66,6 +66,13 @@ func serveWrite(conn *net.TCPConn, token string) {
 		return
 	}
 	u.SetWriteConn(conn)
+
+	if !isTournament {
+		sendDefault(conn, descRefreshNormalTableInfo, tid)
+	} else {
+		sendDefault(conn, descRefreshTournamentTableInfo, tid)
+	}
+
 	go heartBeat(u)
 }
 
