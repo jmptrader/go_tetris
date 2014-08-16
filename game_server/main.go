@@ -10,6 +10,7 @@ func init() {
 	initPubRpcServer()
 	initTables()
 	initTableDatas()
+	initSession()
 	initGraceful()
 }
 

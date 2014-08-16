@@ -143,7 +143,7 @@ func (pubStub) GetData(index int, sessionId string) (res []interface{}, newIndex
 			belong = queue.BelongTo2p
 		}
 	}
-	var count = 100
+	var count = 200
 	for count > 0 {
 		count--
 		if res = tableDatas.GetData(tid, index, belong); res != nil {
