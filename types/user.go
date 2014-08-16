@@ -471,7 +471,7 @@ func (this *User) Close() error {
 	} else {
 		err1 = ErrNilReadConn
 	}
-	if c := this.GetReadConn(); c != nil {
+	if c := this.GetWriteConn(); c != nil {
 		err2 = c.Close()
 	} else {
 		err2 = ErrNilWriteConn
