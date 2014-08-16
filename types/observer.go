@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	"net"
 	"sync"
 )
 
@@ -39,6 +38,9 @@ func (this *obs) Join(u *User) {
 func (this *obs) Quit(uId int) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
+	if u := this.users[uId]; u != nil {
+		u.Close()
+	}
 	delete(this.users, uId)
 }
 
@@ -62,13 +64,13 @@ func (this *obs) GetAll() []int {
 }
 
 // get all observers' connection
-func (this *obs) GetConns() []*net.TCPConn {
+func (this *obs) GetConns() []*User {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
-	conns := make([]*net.TCPConn, 0)
+	conns := make([]*User, 0)
 	for _, u := range this.users {
-		if c := u.GetConn(); c != nil {
-			conns = append(conns, c)
+		if u != nil {
+			conns = append(conns, u)
 		}
 	}
 	return conns

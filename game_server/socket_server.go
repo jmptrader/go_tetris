@@ -38,7 +38,7 @@ func initSocketServer() {
 			}
 			if !isServerActive() {
 				log.Info("the game server is closing, do not accept new connections...")
-				closeConn(conn)
+				closeConnDefault(conn)
 				continue
 			}
 			go serveTcpConn(conn)
@@ -82,7 +82,7 @@ const (
 )
 
 var (
-	pingDuration   = 5 * time.Second
+	pingDuration   = 5
 	authenDuration = 10 * time.Second
 )
 
@@ -97,24 +97,24 @@ func serveTcpConn(conn *net.TCPConn) {
 		log.Debug("set authentication deadline error: %v", err)
 	}
 	// auth -> check the connection
-	data, err := recv(conn)
+	data, err := recvDefault(conn)
 	if err != nil {
 		log.Info("can not read from the tcp connection: %v", err)
-		closeConn(conn)
+		closeConnDefault(conn)
 		return
 	}
 	if data.Cmd != cmdAuth {
 		log.Debug("the first command is not auth, the data is %v", data)
-		send(conn, descError, "the first command should be auth, are you hacker?")
-		closeConn(conn)
+		sendDefault(conn, descError, "the first command should be auth, are you hacker?")
+		closeConnDefault(conn)
 		return
 	}
 	// parse the token, see what to do next
 	uid, nickname, isApply, isOb, isTournament, tid, err := utils.ParseToken(data.Data)
 	if err != nil {
 		log.Debug("can not parse the token: %v", err)
-		send(conn, descError, fmt.Sprintf("can not parse the token %s, are you hacker?", data.Data))
-		closeConn(conn)
+		sendDefault(conn, descError, fmt.Sprintf("can not parse the token %s, are you hacker?", data.Data))
+		closeConnDefault(conn)
 		return
 	}
 	// create a new user, add it into tables
@@ -126,8 +126,8 @@ func serveTcpConn(conn *net.TCPConn) {
 		tid, err := authServerStub.Apply(uid)
 		if err != nil {
 			log.Warn("can not apply for tournament, auth server error: %v", err)
-			send(conn, descError, fmt.Sprintf("报名失败, 错误: %v", err))
-			closeConn(conn)
+			sendDefault(conn, descError, fmt.Sprintf("报名失败, 错误: %v", err))
+			closeConnDefault(conn)
 			return
 		}
 		if !tables.IsTableExist(tid) {
@@ -136,8 +136,8 @@ func serveTcpConn(conn *net.TCPConn) {
 		// the err should always be nil actually
 		if err := tables.JoinTable(tid, u, false); err != nil {
 			log.Debug("can not join the table, game server error: %v", err)
-			send(conn, descError, fmt.Sprintf("无法加入桌子, 错误: %v", err))
-			closeConn(conn)
+			sendDefault(conn, descError, fmt.Sprintf("无法加入桌子, 错误: %v", err))
+			closeConnDefault(conn)
 			return
 		}
 		refreshTable(tid, true)
@@ -146,14 +146,14 @@ func serveTcpConn(conn *net.TCPConn) {
 		// inform the auth server that some one is going to observe a game
 		if err := obGame(tid, uid, isTournament); err != nil {
 			log.Warn("can not ob a game, auth server error: %v", err)
-			send(conn, descError, fmt.Sprintf("无法观战, 错误: %v", err))
-			closeConn(conn)
+			sendDefault(conn, descError, fmt.Sprintf("无法观战, 错误: %v", err))
+			closeConnDefault(conn)
 			return
 		}
 		if err := tables.JoinTable(tid, u, true); err != nil {
 			log.Critical("can not ob a game, game server error: %v", err)
-			send(conn, descError, fmt.Sprintf("无法观战, 错误: %v", err))
-			closeConn(conn)
+			sendDefault(conn, descError, fmt.Sprintf("无法观战, 错误: %v", err))
+			closeConnDefault(conn)
 			return
 		}
 		// do not inform all people that an observer join the table
@@ -163,23 +163,23 @@ func serveTcpConn(conn *net.TCPConn) {
 		// normal hall
 		if err := authServerStub.Join(tid, uid, false); err != nil {
 			log.Warn("can not join a game, auth server error: %v", err)
-			send(conn, descError, fmt.Sprintf("无法加入桌子, 错误: %v", err))
-			closeConn(conn)
+			sendDefault(conn, descError, fmt.Sprintf("无法加入桌子, 错误: %v", err))
+			closeConnDefault(conn)
 			return
 		}
 		if err := tables.JoinTable(tid, u, isOb); err != nil {
 			log.Critical("can not join a game, game server error: %v", err)
-			send(conn, descError, fmt.Sprintf("无法加入桌子, 错误: %v", err))
-			closeConn(conn)
+			sendDefault(conn, descError, fmt.Sprintf("无法加入桌子, 错误: %v", err))
+			closeConnDefault(conn)
 			return
 		}
 		refreshTable(tid, false)
 		sendAll(descSysMsg, fmt.Sprintf("玩家 %s 加入游戏", nickname), tables.GetTableById(tid).GetAllConns()...)
 	}
-	go handleConn(conn, uid, tid, nickname, isOb, tables.GetTableById(tid).Is1p(uid), isTournament)
+	go handleConn(u, uid, tid, nickname, isOb, tables.GetTableById(tid).Is1p(uid), isTournament)
 }
 
-func handleConn(conn *net.TCPConn, uid, tid int, nickname string, isOb, is1p, isTournament bool) {
+func handleConn(conn *types.User, uid, tid int, nickname string, isOb, is1p, isTournament bool) {
 	var handleQuit = func() {
 		quit(tid, uid, nickname, isOb, is1p, isTournament)
 		closeConn(conn)
@@ -193,7 +193,7 @@ func handleConn(conn *net.TCPConn, uid, tid int, nickname string, isOb, is1p, is
 	}
 forLoop:
 	for {
-		if err := conn.SetReadDeadline(time.Now().Add(pingDuration)); err != nil {
+		if err := conn.SetReadTimeoutInSecs(pingDuration); err != nil {
 			log.Debug("can not set heartbeat deadline, error: %v", err)
 		}
 		// receive data from client
@@ -262,7 +262,12 @@ forLoop:
 			}
 		case cmdPing:
 			// get ping from client
-			log.Debug("get ping from %s", conn.RemoteAddr().String())
+			c := conn.GetConn()
+			if c == nil {
+				log.Debug("connection is nil, can not get remote address")
+				break
+			}
+			log.Debug("get ping from %s", c.RemoteAddr().String())
 		default:
 			log.Debug("get strange packet from client: %+v", data)
 			send(conn, descError, fmt.Sprintf("the command %s does not exist, are you hacker?", data.Cmd))
@@ -307,7 +312,7 @@ func quit(tid, uid int, nickname string, isOb, is1p, isTournament bool) {
 }
 
 // send to all
-func sendAll(desc string, val interface{}, conns ...*net.TCPConn) {
+func sendAll(desc string, val interface{}, conns ...*types.User) {
 	for _, c := range conns {
 		send(c, desc, val)
 	}

@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/gogames/go_tetris/utils"
 )
 
 var levels = map[int]string{}
@@ -416,6 +418,26 @@ func (this *User) GetConn() *net.TCPConn {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	return this.conn
+}
+
+// read
+func (this *User) Read() ([]byte, error) {
+	c := this.GetConn()
+	if c == nil {
+		return nil, ErrNilConn
+	}
+	return utils.ReadDataOverTcp(c)
+}
+
+// write
+func (this *User) Write(data []byte) error {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+	c := this.conn
+	if c == nil {
+		return ErrNilConn
+	}
+	return utils.SendDataOverTcp(c, data)
 }
 
 // set read timeout in secs

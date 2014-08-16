@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
-	"net"
 	"sort"
 	"strings"
 	"sync"
@@ -235,19 +234,19 @@ func (ts Tables) MarshalJSON() ([]byte, error) {
 }
 
 // get all connections in all tables
-func (ts *Tables) GetAllConnsInAllTables() []*net.TCPConn {
-	ts.mu.RLock()
-	defer ts.mu.RUnlock()
-	conns := make([]*net.TCPConn, 0)
-	for _, table := range ts.Tables {
-		for _, c := range table.GetAllConns() {
-			if c != nil {
-				conns = append(conns, c)
-			}
-		}
-	}
-	return conns
-}
+// func (ts *Tables) GetAllConnsInAllTables() []*net.TCPConn {
+// 	ts.mu.RLock()
+// 	defer ts.mu.RUnlock()
+// 	conns := make([]*net.TCPConn, 0)
+// 	for _, table := range ts.Tables {
+// 		for _, c := range table.GetAllConns() {
+// 			if c != nil {
+// 				conns = append(conns, c)
+// 			}
+// 		}
+// 	}
+// 	return conns
+// }
 
 // check if the Table exist
 func (ts *Tables) IsTableExist(id int) bool {
@@ -579,9 +578,15 @@ func (t *Table) Quit(uid int) {
 	}
 	switch uid {
 	case t._1p.GetUid():
+		if u := t._1p; u != nil {
+			u.Close()
+		}
 		t._1p = nil
 		t.ready1p = false
 	case t._2p.GetUid():
+		if u := t._2p; u != nil {
+			u.Close()
+		}
 		t._2p = nil
 		t.ready2p = false
 	default:
@@ -620,24 +625,24 @@ func (t *Table) GetObservers() []int {
 }
 
 // get all observers' connections
-func (t *Table) GetObConns() []*net.TCPConn {
+func (t *Table) GetObConns() []*User {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.obs.GetConns()
 }
 
 // get 1p conn
-func (t *Table) Get1pConn() *net.TCPConn {
+func (t *Table) Get1pConn() *User {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return t._1p.GetConn()
+	return t._1p
 }
 
 // get 2p conn
-func (t *Table) Get2pConn() *net.TCPConn {
+func (t *Table) Get2pConn() *User {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return t._2p.GetConn()
+	return t._2p
 }
 
 // get 1p uid
@@ -655,7 +660,7 @@ func (t *Table) Get2pUid() int {
 }
 
 // get all conns
-func (t *Table) GetAllConns() []*net.TCPConn {
+func (t *Table) GetAllConns() []*User {
 	conns := t.GetObConns()
 	if c := t.Get1pConn(); c != nil {
 		conns = append(conns, c)

@@ -5,13 +5,24 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/gogames/go_tetris/types"
 	"github.com/gogames/go_tetris/utils"
 )
 
 var errNilConn = fmt.Errorf("the connection is nil")
 
 // receive data
-func recv(conn *net.TCPConn) (d requestData, err error) {
+func recv(conn *types.User) (d requestData, err error) {
+	b, err := conn.Read()
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(b, &d)
+	return
+}
+
+// receive data
+func recvDefault(conn *net.TCPConn) (d requestData, err error) {
 	if conn == nil {
 		err = errNilConn
 		return
@@ -25,7 +36,16 @@ func recv(conn *net.TCPConn) (d requestData, err error) {
 }
 
 // send data
-func send(conn *net.TCPConn, desc string, data interface{}) error {
+func send(conn *types.User, desc string, data interface{}) error {
+	err := conn.Write(newResponse(desc, data).toJson())
+	if err != nil {
+		log.Debug("can not send response data ->\ndesc: %v, data: %v, error: %v", desc, data, err)
+	}
+	return err
+}
+
+// send data
+func sendDefault(conn *net.TCPConn, desc string, data interface{}) error {
 	if conn == nil {
 		log.Debug("the connection is nil, can not send")
 		return errNilConn
@@ -38,7 +58,16 @@ func send(conn *net.TCPConn, desc string, data interface{}) error {
 }
 
 // close a connection
-func closeConn(conns ...*net.TCPConn) {
+func closeConn(conns ...*types.User) {
+	for _, conn := range conns {
+		if err := conn.Close(); err != nil {
+			log.Debug("can not close the connection: %v", err)
+		}
+	}
+}
+
+// close a connection
+func closeConnDefault(conns ...*net.TCPConn) {
 	for _, conn := range conns {
 		if conn == nil {
 			continue
