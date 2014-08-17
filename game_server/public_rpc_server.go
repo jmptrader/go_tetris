@@ -73,6 +73,7 @@ func initPubRpcServer() {
 	pubHttpServer.AddMethods(pubStub{})
 	pubHttpServer.DebugEnabled = true
 	pubHttpServer.ServiceEvent = pubSe{}
+	pubHttpServer.SetCrossDomainXmlFile(crossDomainFile)
 	go servePubHttp()
 }
 

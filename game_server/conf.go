@@ -18,6 +18,7 @@ var (
 	authServerRpcPort    string
 	gameServerRpcPort    string
 	gamePubServerRpcPort string
+	crossDomainFile      string
 	maxConn              int
 	privKey              []byte
 )
@@ -36,6 +37,7 @@ func initConf() {
 	authServerRpcPort = conf.String("authServerRpcPort")
 	gameServerRpcPort = conf.String("gameServerRpcPort")
 	gamePubServerRpcPort = conf.String("gamePubServerRpcPort")
+	crossDomainFile = conf.String("crossDomainFile")
 	privKeyString := conf.String("privKey")
 	maxConn, err = conf.Int("maxConn")
 	if err != nil {
