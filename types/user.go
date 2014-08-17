@@ -339,7 +339,8 @@ func (u User) Wrap() map[string]interface{} {
 	defer u.mu.Unlock()
 	length, exp := 1, 0
 	if u.Level != 0 {
-		length = 2*u.Level - 1
+		// length = 2*u.Level - 1
+		length = 2 * u.Level
 	}
 	if u.Level > 1 {
 		exp = u.Win - (u.Level-1)*(u.Level-1)
