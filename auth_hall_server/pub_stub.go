@@ -216,13 +216,13 @@ func (pubStub) Logout(sessId string) {
 
 // get user info
 // update session timestamp
-func (pubStub) GetUserInfo(sessId string) *types.User {
+func (pubStub) GetUserInfo(sessId string) map[string]interface{} {
 	if uid, ok := session.GetSession(sessKeyUserId, sessId).(int); ok {
 		u := getUserById(uid)
 		if u == nil {
 			panic(fmt.Errorf(errUserNotExist, uid))
 		}
-		return u
+		return u.Wrap()
 	}
 	panic(errNotLoggedIn)
 }

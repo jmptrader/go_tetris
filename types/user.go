@@ -334,6 +334,32 @@ type User struct {
 	mu sync.Mutex
 }
 
+func (u User) Wrap() map[string]interface{} {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	length, exp := 1, 0
+	if u.Level != 0 {
+		length = 2*u.Level - 1
+	}
+	if u.Level > 1 {
+		exp = u.Win - (u.Level-1)*(u.Level-1)
+	}
+	return map[string]interface{}{
+		"uid":      u.Uid,
+		"avatar":   u.Avatar,
+		"email":    u.Email,
+		"nickname": u.Nickname,
+		"energy":   u.Energy,
+		"level":    u.Level,
+		"win":      u.Win,
+		"lose":     u.Lose,
+		"addr":     u.Addr,
+		"balance":  u.Balance,
+		"length":   length,
+		"exp":      exp,
+	}
+}
+
 func (u User) String() string {
 	b, _ := json.Marshal(u)
 	return string(b)
