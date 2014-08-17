@@ -30,7 +30,7 @@ var (
 	getNicknameFromSession     = func(sessionId string) string { return session.GetSession(sessKeyNickname, sessionId).(string) }
 )
 
-func (pubStub) ValidateToken(token string) (sessionId string, index int) {
+func (pubStub) Auth(token string) (sessionId string, index int) {
 	uid, nickname, isApply, isOb, isTournament, tid, err := utils.ParseToken(token)
 	if err != nil {
 		panic(err)

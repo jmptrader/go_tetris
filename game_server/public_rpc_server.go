@@ -24,7 +24,7 @@ var checkSessionId = func(params []reflect.Value) {
 	if l := len(params); l > 0 {
 		sessId := params[l-1].String()
 		if !session.IsSessIdExist(sessId) {
-			panic("先调用ValidateToken 创建游戏服务器上的sessionId才能发送指令")
+			panic("先调用Auth 创建游戏服务器上的sessionId才能发送指令")
 		}
 		session.SetSession(sessKeyPing, 0, sessId)
 	}
@@ -40,7 +40,7 @@ func (pubSe) OnBeforeInvoke(funcName string, params []reflect.Value, isSimple bo
 	log.Info(utils.HproseLog(funcName, params, ctx))
 
 	switch funcName {
-	case "ValidateToken":
+	case "Auth":
 		panicOfServerStatus()
 	case "SwitchReady":
 		checkSessionId(params)

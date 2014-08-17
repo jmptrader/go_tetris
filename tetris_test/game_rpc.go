@@ -17,13 +17,13 @@ var (
 )
 
 type gStub struct {
-	ValidateToken func(string) (string, int, error)
-	SwitchReady   func(string) error
-	SendChat      func(string, string) error
-	Operate       func(string, string) error
-	Quit          func(string) error
-	Ping          func(string) error
-	GetData       func(int, string) ([]string, int, error)
+	Auth        func(string) (string, int, error)
+	SwitchReady func(string) error
+	SendChat    func(string, string) error
+	Operate     func(string, string) error
+	Quit        func(string) error
+	Ping        func(string) error
+	GetData     func(int, string) ([]string, int, error)
 }
 
 func joinGameServer(host string, token string) {
@@ -34,7 +34,7 @@ func joinGameServer(host string, token string) {
 	gClient.UseService(&gS)
 
 	var err error
-	gSessionId, gIndex, err = gS.ValidateToken(token)
+	gSessionId, gIndex, err = gS.Auth(token)
 	if err != nil {
 		fmt.Printf("get error when validate token: %v\n", err)
 		return
