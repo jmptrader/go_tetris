@@ -38,9 +38,9 @@ func (this *obs) Join(u *User) {
 func (this *obs) Quit(uId int) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
-	if u := this.users[uId]; u != nil {
-		u.Close()
-	}
+	// if u := this.users[uId]; u != nil {
+	// 	u.Close()
+	// }
 	delete(this.users, uId)
 }
 
@@ -48,10 +48,10 @@ func (this *obs) Quit(uId int) {
 func (this *obs) QuitAll() {
 	this.mu.Lock()
 	defer this.mu.Unlock()
-	for uid, u := range this.users {
-		if u != nil {
-			u.Close()
-		}
+	for uid, _ := range this.users {
+		// if u != nil {
+		// 	u.Close()
+		// }
 		delete(this.users, uid)
 	}
 }

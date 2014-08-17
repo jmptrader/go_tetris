@@ -141,7 +141,7 @@ func (ts *Tables) String() string {
 	defer ts.mu.RUnlock()
 	str := "Currently we have the following tables:\n"
 	for tid, t := range ts.Tables {
-		str += fmt.Sprintf("table id: %d -> status: %s\n", tid, t.TStat)
+		str += fmt.Sprintf("table id: %d -> status: %s\n", tid, t.tStat)
 	}
 	return str
 }
@@ -233,22 +233,6 @@ func (ts Tables) MarshalJSON() ([]byte, error) {
 	return json.Marshal(res)
 }
 
-// get all connections in all tables
-func (ts *Tables) GetAllConnsInAllTables() []*User {
-	ts.mu.RLock()
-	defer ts.mu.RUnlock()
-	conns := make([]*User, 0)
-	for _, table := range ts.Tables {
-		conns = append(conns, table.GetAllConns()...)
-	}
-	return conns
-}
-
-// check if the Table exist
-func (ts *Tables) IsTableExist(id int) bool {
-	return ts.GetTableById(id) != nil
-}
-
 // get a Table
 func (ts *Tables) GetTableById(id int) *Table {
 	ts.mu.RLock()
@@ -266,11 +250,11 @@ func (ts *Tables) DelTable(id int) {
 
 // create a new Table
 func (ts *Tables) NewTable(id int, title, host string, bet int) error {
-	if ts.IsTableExist(id) {
-		return ErrExisted
-	}
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
+	if _, ok := ts.Tables[id]; ok {
+		return ErrExisted
+	}
 	ts.Tables[id] = newTable(id, title, host, bet)
 	ts.sortedTableId.Add(id)
 	return nil
@@ -278,8 +262,10 @@ func (ts *Tables) NewTable(id int, title, host string, bet int) error {
 
 // join a Table
 func (ts *Tables) JoinTable(id int, u *User, isOb bool) error {
-	t := ts.GetTableById(id)
-	if t == nil {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	t, ok := ts.Tables[id]
+	if !ok {
 		return ErrNotExist
 	}
 	if isOb {
@@ -301,31 +287,6 @@ const (
 	statInGame  = "已开始"
 )
 
-// basic table info, seems useless
-type tableInfo struct {
-	TId    int    `json:"table_id"`
-	TTitle string `json:"table_title"`
-	TStat  string `json:"table_status"`
-	TBet   int    `json:"table_bet"`
-	THost  string `json:"table_host"`
-}
-
-func (ti tableInfo) IsStart() bool {
-	return ti.TStat == statInGame
-}
-
-func (ti tableInfo) GetHost() string {
-	return ti.THost
-}
-
-func (ti tableInfo) GetIp() string {
-	return strings.Split(ti.THost, ":")[0]
-}
-
-func (ti tableInfo) IsGamble() bool {
-	return ti.TBet > 0
-}
-
 const (
 	zoneHeight            = 20
 	zoneWidth             = 10
@@ -333,8 +294,11 @@ const (
 	defaultInterval       = 1000
 )
 
+type gameOverStatus int
+
 const (
-	GameoverNormal = iota
+	_ gameOverStatus = iota
+	GameoverNormal
 	Gameover1pQuit
 	Gameover2pQuit
 )
@@ -343,7 +307,11 @@ const (
 type Table struct {
 	mu sync.Mutex
 	// basic table information
-	tableInfo
+	tId    int
+	tTitle string
+	tStat  string
+	tBet   int
+	tHost  string
 	// observers
 	obs *obs
 	// player 1p, 2p
@@ -358,24 +326,22 @@ type Table struct {
 	remainedSeconds     int
 	RemainedSecondsChan chan int
 	// game over
-	GameoverChan chan int
+	GameoverChan chan gameOverStatus
 }
 
 func newTable(id int, title, host string, bet int) *Table {
 	return &Table{
-		tableInfo: tableInfo{
-			TId:    id,
-			TTitle: title,
-			TStat:  statWaiting,
-			TBet:   bet,
-			THost:  host,
-		},
+		tId:                 id,
+		tTitle:              title,
+		tStat:               statWaiting,
+		tBet:                bet,
+		tHost:               host,
 		obs:                 NewObs(),
 		startTime:           time.Now().Unix(),
 		remainedSeconds:     120,
 		timer:               timer.NewTimer(1000),
 		RemainedSecondsChan: make(chan int, 1<<3),
-		GameoverChan:        make(chan int, 1<<3),
+		GameoverChan:        make(chan gameOverStatus, 1<<3),
 	}
 }
 
@@ -405,11 +371,11 @@ func (t *Table) WrapTable() map[string]interface{} {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return map[string]interface{}{
-		"table_bet":      t.TBet,
-		"table_id":       t.TId,
-		"table_host":     t.THost,
-		"table_status":   t.TStat,
-		"table_title":    t.TTitle,
+		"table_bet":      t.tBet,
+		"table_id":       t.tId,
+		"table_host":     t.tHost,
+		"table_status":   t.tStat,
+		"table_title":    t.tTitle,
 		"table_1p":       t._1p,
 		"table_2p":       t._2p,
 		"table_1p_ready": t.ready1p,
@@ -419,18 +385,18 @@ func (t *Table) WrapTable() map[string]interface{} {
 }
 
 // table json
-func (t *Table) MarshalJSON() ([]byte, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return json.Marshal(map[string]interface{}{
-		"info":      t.tableInfo,
-		"observers": t.obs,
-		"1p":        t._1p,
-		"2p":        t._2p,
-		"1p_ready":  t.ready1p,
-		"2p_ready":  t.ready2p,
-	})
-}
+// func (t *Table) MarshalJSON() ([]byte, error) {
+// 	t.mu.Lock()
+// 	defer t.mu.Unlock()
+// 	return json.Marshal(map[string]interface{}{
+// 		"info":      t.tableInfo,
+// 		"observers": t.obs,
+// 		"1p":        t._1p,
+// 		"2p":        t._2p,
+// 		"1p_ready":  t.ready1p,
+// 		"2p_ready":  t.ready2p,
+// 	})
+// }
 
 // start the game, only used on game server
 func (t *Table) StartGame() {
@@ -442,7 +408,7 @@ func (t *Table) StartGame() {
 	t.g1p.Start()
 	t.g2p.Start()
 	t.startTime = time.Now().Unix()
-	t.TStat = statInGame
+	t.tStat = statInGame
 }
 
 // stop the game, only used on game server
@@ -453,7 +419,7 @@ func (t *Table) StopGame() {
 	t.timer.Reset()
 	t.g1p.Stop()
 	t.g2p.Stop()
-	t.TStat = statWaiting
+	t.tStat = statWaiting
 	t.startTime = time.Now().Unix()
 }
 
@@ -466,7 +432,7 @@ func (t *Table) ResetTable() {
 	t.ready1p = false
 	t.ready2p = false
 	t.remainedSeconds = 120
-	t.TStat = statWaiting
+	t.tStat = statWaiting
 }
 
 // set ready
@@ -499,6 +465,24 @@ const (
 
 var MaxDurationOfTable = maxGameDurationInSecs + maxIdleDurationInSecs
 
+func (t *Table) GetHost() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.tHost
+}
+
+func (t *Table) GetIp() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return strings.Split(t.tHost, ":")[0]
+}
+
+func (t *Table) GetTid() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.tId
+}
+
 // check if the table should expire
 func (t *Table) Expire() bool {
 	t.mu.Lock()
@@ -509,13 +493,20 @@ func (t *Table) Expire() bool {
 	// if the table has no players for 10 seconds, release it
 	// there should be some network errors occur
 	// so we have to manually release the table otherwise the users are not able to join game any more
-	if t.HasNoPlayer() {
+	if t._1p == nil && t._2p == nil {
 		return tDur > maxNoPlayerDurationInSecs
 	}
-	if t.IsStart() {
+	if t.tStat == statInGame {
 		return tDur > maxGameDurationInSecs
 	}
 	return tDur > maxIdleDurationInSecs
+}
+
+// check if the table is start
+func (t *Table) IsStart() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.tStat == statInGame
 }
 
 // start the game in the table
@@ -523,7 +514,7 @@ func (t *Table) Start() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.startTime = time.Now().Unix()
-	t.TStat = statInGame
+	t.tStat = statInGame
 }
 
 // stop the game
@@ -532,7 +523,7 @@ func (t *Table) Stop() {
 	defer t.mu.Unlock()
 	t.ready1p = false
 	t.ready2p = false
-	t.TStat = statWaiting
+	t.tStat = statWaiting
 	t.startTime = time.Now().Unix()
 }
 
@@ -574,11 +565,11 @@ func (t *Table) Quit(uid int) {
 	}
 	switch uid {
 	case t._1p.GetUid():
-		t._1p.Close()
+		// t._1p.Close()
 		t._1p = nil
 		t.ready1p = false
 	case t._2p.GetUid():
-		t._2p.Close()
+		// t._2p.Close()
 		t._2p = nil
 		t.ready2p = false
 	default:
@@ -589,6 +580,8 @@ func (t *Table) Quit(uid int) {
 // check if the table does not have player
 // for delete
 func (t *Table) HasNoPlayer() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	return t._1p == nil && t._2p == nil
 }
 
@@ -596,7 +589,7 @@ func (t *Table) HasNoPlayer() bool {
 func (t *Table) GetBet() int {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return t.TBet
+	return t.tBet
 }
 
 // get all users
@@ -614,27 +607,6 @@ func (t *Table) GetObservers() []int {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.obs.GetAll()
-}
-
-// get all observers' connections
-func (t *Table) GetObConns() []*User {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t.obs.GetConns()
-}
-
-// get 1p conn
-func (t *Table) Get1pConn() *User {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t._1p
-}
-
-// get 2p conn
-func (t *Table) Get2pConn() *User {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t._2p
 }
 
 // get 1p uid
@@ -668,20 +640,10 @@ func (t *Table) GetUserById(uid int) *User {
 	}
 }
 
-// get all conns
-func (t *Table) GetAllConns() []*User {
-	conns := t.GetObConns()
-	if c := t.Get1pConn(); c != nil {
-		conns = append(conns, c)
-	}
-	if c := t.Get2pConn(); c != nil {
-		conns = append(conns, c)
-	}
-	return conns
-}
-
 // close all ob connections, for game server used
 func (t *Table) QuitAllObs() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.obs.QuitAll()
 }
 

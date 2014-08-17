@@ -44,9 +44,9 @@ func (pubStub) Auth(token string) (sessionId string, index int) {
 			log.Warn("can not apply for tournament, auth server error: %v", err)
 			panic(fmt.Sprintf("报名失败, 错误: %v", err))
 		}
-		if !tables.IsTableExist(tid) {
-			tables.NewTable(tid, "", "", 0)
-		}
+		// if not exist, add new table
+		// if exist, do nothing
+		tables.NewTable(tid, "", "", 0)
 		// the err should always be nil actually
 		if err := tables.JoinTable(tid, u, false); err != nil {
 			log.Debug("can not join the table, game server error: %v", err)

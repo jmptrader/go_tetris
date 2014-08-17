@@ -429,7 +429,7 @@ func (pubStub) AutoMatch(sessId string) (string, string) {
 		if table == nil {
 			panic(errCantMatchOpponent)
 		}
-		token, err := utils.GenerateToken(uid, u.Nickname, false, false, table.TId)
+		token, err := utils.GenerateToken(uid, u.Nickname, false, false, table.GetTid())
 		if err != nil {
 			panic(err)
 		}

@@ -257,8 +257,9 @@ func tableChecker(t *types.Table, ctx interface{}) {
 	if !t.ShouldStart() {
 		return
 	}
-	if err := clients.GetStub(utils.GetIp(ctx)).Start(t.TId); err != nil {
-		log.Critical("can not inform game server to start the table %d", t.TId)
+	tid := t.GetTid()
+	if err := clients.GetStub(utils.GetIp(ctx)).Start(tid); err != nil {
+		log.Critical("can not inform game server to start the table %d", tid)
 		return
 	}
 	t.Start()

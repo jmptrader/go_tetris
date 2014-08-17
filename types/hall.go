@@ -36,18 +36,20 @@ func (h NormalHall) MarshalJSON() ([]byte, error) {
 
 // find the next table id of normal hall
 func (h *NormalHall) NextTableId() int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	var i int
-	for h.IsTableExist(h.currId) {
-		h.mu.Lock()
+	for {
+		if _, ok := h.Tables.Tables[h.currId]; !ok {
+			return h.currId
+		}
 		if i == h.maxId {
 			h.maxId += 1
 			h.currId = h.maxId
-			h.mu.Unlock()
 			break
 		}
 		i++
 		h.currId = (h.currId + 1) % (h.maxId + 1)
-		h.mu.Unlock()
 	}
 	return h.currId
 }
