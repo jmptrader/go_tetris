@@ -16,8 +16,11 @@ func (r responseData) String() string {
 	return fmt.Sprintf("\ndescription: %v, data: %v", r.Desc, r.Data)
 }
 
-func (r responseData) toJson() interface{} {
-	return r
+func (r responseData) toJson() map[string]interface{} {
+	return map[string]interface{}{
+		"desc": r.Desc,
+		"data": r.Data,
+	}
 }
 
 // func (r responseData) toJson() string {
