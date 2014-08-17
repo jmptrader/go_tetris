@@ -51,22 +51,24 @@ func (d *datas) length() int {
 }
 
 // get data from index
-func (d *datas) getDataFromIndex(index int, belong DataBelong) []interface{} {
+func (d *datas) getDataFromIndex(index int, belong DataBelong) (res []interface{}, l int) {
 	if d == nil {
-		return nil
+		fmt.Printf("datas is nil, why get data for belong %v from index %d\n", belong, index)
+		return
 	}
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	res := make([]interface{}, 0)
-	for i := index; i < len(d.d); i++ {
+	l = len(d.d)
+	res = make([]interface{}, 0)
+	for i := index; i < l; i++ {
 		if d.d[i].isBelongTo(belong) {
 			res = append(res, d.d[i].data)
 		}
 	}
 	if len(res) == 0 {
-		return nil
+		res = nil
 	}
-	return res
+	return
 }
 
 func (d *datas) setData(data interface{}, belong DataBelong) {
@@ -131,7 +133,7 @@ func (tds *tableDatas) DeleteTable(tableId int) {
 }
 
 // Get data from index for belong
-func (tds tableDatas) GetData(tableId, index int, belong DataBelong) []interface{} {
+func (tds tableDatas) GetData(tableId, index int, belong DataBelong) ([]interface{}, int) {
 	return tds.getTableData(tableId).getDataFromIndex(index, belong)
 }
 
