@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // response from game server to client
 type responseData struct {
@@ -16,17 +19,17 @@ func (r responseData) String() string {
 	return fmt.Sprintf("\ndescription: %v, data: %v", r.Desc, r.Data)
 }
 
-func (r responseData) toJson() map[string]interface{} {
-	return map[string]interface{}{
-		"desc": r.Desc,
-		"data": r.Data,
-	}
-}
-
-// func (r responseData) toJson() string {
-// 	b, err := json.Marshal(r)
-// 	if err != nil {
-// 		log.Debug("can not json marshal the data %v: %v", r, err)
+// func (r responseData) toJson() map[string]interface{} {
+// 	return map[string]interface{}{
+// 		"desc": r.Desc,
+// 		"data": r.Data,
 // 	}
-// 	return string(b)
 // }
+
+func (r responseData) toJson() string {
+	b, err := json.Marshal(r)
+	if err != nil {
+		log.Debug("can not json marshal the data %v: %v", r, err)
+	}
+	return string(b)
+}
