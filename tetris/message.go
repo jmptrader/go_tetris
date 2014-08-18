@@ -24,13 +24,14 @@ func NewMessage(desc string, val interface{}) message {
 
 // descriptions
 const (
-	DescNextPiece   = "next"     // next piece change
-	DescHoldedPiece = "hold"     // hold piece change
-	DescZone        = "zone"     // zone change
-	DescAudio       = "audio"    // audio play
-	DescAttack      = "attack"   // send lines to attack opponent (send line, or T Z spin)
-	DescLines       = "lines"    // number of send lines changed
-	DescCombo       = "combo"    // combo number changed
+	DescNextPiece   = "next"   // next piece change
+	DescHoldedPiece = "hold"   // hold piece change
+	DescZone        = "zone"   // zone change
+	DescAudio       = "audio"  // audio play
+	DescAttack      = "attack" // send lines to attack opponent (send line, or T Z spin)
+	DescLines       = "lines"  // number of send lines changed
+	DescCombo       = "combo"  // combo number changed
+	DescBomb        = "bomb"
 	DescKo          = "ko"       // ko the opponent
 	DescBeingKo     = "beingKo"  // ko by the opponent
 	DescStart       = "start"    // game start, count 3 seconds

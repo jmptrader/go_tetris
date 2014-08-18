@@ -363,6 +363,7 @@ func (g *Game) calculate() (lineSent int) {
 	// num of bombs hit and lines clear
 	// hitBombs := g.mainZone.checkHitBombs(g.activePiece.block)
 	if hitBombs > 0 {
+		g.send(DescBomb, 0)
 		g.send(DescAudio, audioHitBomb())
 	}
 	// l := g.mainZone.clearLines()
