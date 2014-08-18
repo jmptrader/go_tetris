@@ -371,7 +371,6 @@ func (g *Game) calculate() (lineSent int) {
 	if g.mainZone.isZoneClear() {
 		lineSent += 10
 		g.send(DescClear, true)
-		g.comboAdd()
 		return
 	}
 
